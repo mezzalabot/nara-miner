@@ -65,7 +65,9 @@ async function callGrokAPI(question, roundInfo = {}) {
     return null;
   }
 
-  const model = process.env.XAI_MODEL || CONFIG.XAI_MODEL || 'grok-4';
+  // Use fast non-reasoning model for live fallback (speed priority)
+  // grok-4-1-fast-non-reasoning: optimized for high-performance tool calling
+  const model = process.env.XAI_MODEL || CONFIG.XAI_MODEL || 'grok-4-1-fast';
   
   const schema = {
     type: 'object',
