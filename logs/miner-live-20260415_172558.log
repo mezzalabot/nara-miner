@@ -1,0 +1,31 @@
+
+╔══════════════════════════════════════════════╗
+║                                              ║
+║   ███╗   ██╗ █████╗ ██████╗  █████╗         ║
+║   ████╗  ██║██╔══██╗██╔══██╗██╔══██╗        ║
+║   ██╔██╗ ██║███████║██████╔╝███████║        ║
+║   ██║╚██╗██║██╔══██║██╔══██╗██╔══██║        ║
+║   ██║ ╚████║██║  ██║██║  ██║██║  ██║        ║
+║   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝        ║
+║                                              ║
+║   Multi-Wallet PoMI Miner v1.0               ║
+║   304 Wallets × Automated Mining             ║
+║                                              ║
+╚══════════════════════════════════════════════╝
+  
+Config:
+  RPC        : https://mainnet-api.nara.build/
+  Relay      : https://quest-api.nara.build/
+  Main Wallet: 3PFnwk23PRkPemtFtBH7TsUiAEsb5pcrVgjRYR7764yu
+  Wallets    : 304
+  Concurrency: 10
+  Auto Consol: every 5 rounds
+
+Starting miner... (Ctrl+C to stop)
+
+
+╔══════════════════════════════════════╗
+║   NARA MULTI-WALLET MINER v1.0      ║
+╚══════════════════════════════════════╝
+
+[2026-04-15 15:26:06] [ERR] Fatal: ENOENT: no such file or directory, open 'wallets/wallets/wallet_000.json'
