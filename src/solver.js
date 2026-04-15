@@ -101,6 +101,14 @@ const KNOWLEDGE_ENTRIES = [
   { pattern: /process of liquid changing into gas/i, answer: 'evaporation', aliases: ['evaporation'] },
   { pattern: /study of earthquakes/i, answer: 'seismology', aliases: ['seismology'] },
 
+  // Health & Medicine
+  { pattern: /lack of which vitamin caused scurvy/i, answer: 'vitamin c', aliases: ['vitamin c', 'vitamin c', 'c'] },
+  { pattern: /vitamin.*scurvy/i, answer: 'vitamin c', aliases: ['vitamin c', 'vitamin c', 'c'] },
+
+  // TV & Entertainment
+  { pattern: /felicity kendall play in.*the good life/i, answer: 'barbara good', aliases: ['barbara good'] },
+  { pattern: /felicity kendall.*good life.*character/i, answer: 'barbara good', aliases: ['barbara good'] },
+
   // Common sense / logic
   { pattern: /how many days are there in a leap year/i, answer: '366', aliases: ['366'] },
   { pattern: /how many continents are there/i, answer: '7', aliases: ['7', 'seven'] },
