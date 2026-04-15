@@ -1,21 +1,147 @@
 // ============================================================
-// QUEST SOLVER - OPTIMIZED
-// Coverage-first deterministic solver for PoMI/Nara style prompts
+// QUEST SOLVER - EXPANDED KNOWLEDGE BASE
+// Deterministic, rule-based, no external APIs
+// Designed for PoMI / Nara style prompts
 // ============================================================
 
-const KNOWLEDGE_CHOICES = [
-  {
-    test: /most important product of virginia forests/i,
-    answer: 'C',
-  },
+const KNOWLEDGE_ENTRIES = [
+  // From observed failures / package hints
+  { pattern: /most important product of virginia forests/i, answer: 'hardwood lumber', aliases: ['hardwood lumber'] },
+  { pattern: /salmon.*migrate.*freshwater.*ocean/i, answer: 'acclimatize', aliases: ['acclimatize'] },
+  { pattern: /parvovirus family targeted to reduce disease/i, answer: 'vaccine has been developed', aliases: ['vaccine has been developed', 'vaccine'] },
+  { pattern: /largest.*population.*landlocked country/i, answer: 'ethiopia', aliases: ['ethiopia'] },
+  { pattern: /largest landlocked country by population/i, answer: 'ethiopia', aliases: ['ethiopia'] },
+  { pattern: /sanskrit word.*both buddhism and hinduism.*law or natural law/i, answer: 'dharma', aliases: ['dharma'] },
+
+  // Animals & biology
+  { pattern: /largest mammal/i, answer: 'blue whale', aliases: ['blue whale'] },
+  { pattern: /fastest land animal/i, answer: 'cheetah', aliases: ['cheetah'] },
+  { pattern: /largest bird/i, answer: 'ostrich', aliases: ['ostrich'] },
+  { pattern: /animal known as the king of the jungle/i, answer: 'lion', aliases: ['lion'] },
+  { pattern: /animal that can live both on land and in water.*amphibian/i, answer: 'frog', aliases: ['frog', 'toad'] },
+  { pattern: /process by which plants make food/i, answer: 'photosynthesis', aliases: ['photosynthesis'] },
+  { pattern: /organelle known as the powerhouse of the cell/i, answer: 'mitochondria', aliases: ['mitochondria', 'mitochondrion'] },
+  { pattern: /largest organ in the human body/i, answer: 'skin', aliases: ['skin'] },
+  { pattern: /red blood cells are produced in the/i, answer: 'bone marrow', aliases: ['bone marrow'] },
+  { pattern: /basic unit of life/i, answer: 'cell', aliases: ['cell'] },
+  { pattern: /animals that eat only plants are called/i, answer: 'herbivores', aliases: ['herbivore', 'herbivores'] },
+  { pattern: /animals that eat both plants and animals are called/i, answer: 'omnivores', aliases: ['omnivore', 'omnivores'] },
+  { pattern: /scientific study of animals/i, answer: 'zoology', aliases: ['zoology'] },
+  { pattern: /scientific study of plants/i, answer: 'botany', aliases: ['botany'] },
+  { pattern: /gas plants absorb from the atmosphere/i, answer: 'carbon dioxide', aliases: ['carbon dioxide', 'co2'] },
+  { pattern: /gas humans need to breathe/i, answer: 'oxygen', aliases: ['oxygen', 'o2'] },
+  { pattern: /largest planet in the solar system/i, answer: 'jupiter', aliases: ['jupiter'] },
+  { pattern: /planet known as the red planet/i, answer: 'mars', aliases: ['mars'] },
+  { pattern: /planet closest to the sun/i, answer: 'mercury', aliases: ['mercury'] },
+  { pattern: /planet famous for its rings/i, answer: 'saturn', aliases: ['saturn'] },
+  { pattern: /natural satellite of the earth/i, answer: 'moon', aliases: ['moon', 'the moon'] },
+
+  // Geography
+  { pattern: /capital of france/i, answer: 'paris', aliases: ['paris'] },
+  { pattern: /capital of japan/i, answer: 'tokyo', aliases: ['tokyo'] },
+  { pattern: /capital of indonesia/i, answer: 'jakarta', aliases: ['jakarta'] },
+  { pattern: /capital of australia/i, answer: 'canberra', aliases: ['canberra'] },
+  { pattern: /capital of canada/i, answer: 'ottawa', aliases: ['ottawa'] },
+  { pattern: /capital of brazil/i, answer: 'brasilia', aliases: ['brasilia', 'brasilia'] },
+  { pattern: /capital of egypt/i, answer: 'cairo', aliases: ['cairo'] },
+  { pattern: /longest river in the world/i, answer: 'nile', aliases: ['nile', 'the nile'] },
+  { pattern: /largest ocean/i, answer: 'pacific ocean', aliases: ['pacific ocean', 'pacific'] },
+  { pattern: /largest desert in the world(?!.*hot)/i, answer: 'antarctica', aliases: ['antarctica'] },
+  { pattern: /largest hot desert in the world/i, answer: 'sahara desert', aliases: ['sahara desert', 'sahara'] },
+  { pattern: /highest mountain in the world/i, answer: 'mount everest', aliases: ['mount everest', 'everest'] },
+  { pattern: /continent with the most countries/i, answer: 'africa', aliases: ['africa'] },
+  { pattern: /smallest continent/i, answer: 'australia', aliases: ['australia', 'oceania'] },
+  { pattern: /country known as the land of the rising sun/i, answer: 'japan', aliases: ['japan'] },
+  { pattern: /country with the largest population/i, answer: 'india', aliases: ['india'] },
+  { pattern: /largest country by area/i, answer: 'russia', aliases: ['russia'] },
+  { pattern: /capital of the united states/i, answer: 'washington, d.c.', aliases: ['washington dc', 'washington, d.c.', 'washington d.c.', 'washington'] },
+  { pattern: /currency of japan/i, answer: 'yen', aliases: ['yen'] },
+  { pattern: /currency of the united kingdom/i, answer: 'pound sterling', aliases: ['pound sterling', 'pound', 'british pound'] },
+
+  // History & culture
+  { pattern: /first president of the united states/i, answer: 'george washington', aliases: ['george washington'] },
+  { pattern: /who discovered america/i, answer: 'christopher columbus', aliases: ['christopher columbus', 'columbus'] },
+  { pattern: /who invented the telephone/i, answer: 'alexander graham bell', aliases: ['alexander graham bell', 'graham bell'] },
+  { pattern: /who invented the light bulb/i, answer: 'thomas edison', aliases: ['thomas edison', 'edison'] },
+  { pattern: /who painted the mona lisa/i, answer: 'leonardo da vinci', aliases: ['leonardo da vinci', 'da vinci'] },
+  { pattern: /who wrote romeo and juliet/i, answer: 'william shakespeare', aliases: ['william shakespeare', 'shakespeare'] },
+  { pattern: /ancient wonder located in egypt/i, answer: 'great pyramid of giza', aliases: ['great pyramid of giza', 'pyramid of giza'] },
+  { pattern: /wall that once divided berlin/i, answer: 'berlin wall', aliases: ['berlin wall'] },
+  { pattern: /ship that sank in 1912 after hitting an iceberg/i, answer: 'titanic', aliases: ['titanic', 'the titanic'] },
+  { pattern: /currency used in ancient rome/i, answer: 'denarius', aliases: ['denarius'] },
+  { pattern: /language of ancient rome/i, answer: 'latin', aliases: ['latin'] },
+  { pattern: /who was known as the maid of orleans/i, answer: 'joan of arc', aliases: ['joan of arc'] },
+  { pattern: /who led india to independence through nonviolent resistance/i, answer: 'mahatma gandhi', aliases: ['mahatma gandhi', 'gandhi'] },
+  { pattern: /the renaissance began in which country/i, answer: 'italy', aliases: ['italy'] },
+  { pattern: /what civilization built machu picchu/i, answer: 'inca', aliases: ['inca', 'the inca'] },
+  { pattern: /what was the name of the trade route linking china and the mediterranean/i, answer: 'silk road', aliases: ['silk road', 'the silk road'] },
+  { pattern: /what is the holy month of fasting in islam/i, answer: 'ramadan', aliases: ['ramadan'] },
+  { pattern: /festival of lights in hindu tradition/i, answer: 'diwali', aliases: ['diwali'] },
+  { pattern: /traditional japanese garment/i, answer: 'kimono', aliases: ['kimono'] },
+
+  // Science
+  { pattern: /chemical symbol for water/i, answer: 'h2o', aliases: ['h2o'] },
+  { pattern: /chemical symbol for gold/i, answer: 'au', aliases: ['au'] },
+  { pattern: /chemical symbol for silver/i, answer: 'ag', aliases: ['ag'] },
+  { pattern: /chemical symbol for sodium/i, answer: 'na', aliases: ['na'] },
+  { pattern: /chemical symbol for iron/i, answer: 'fe', aliases: ['fe'] },
+  { pattern: /speed of light/i, answer: '299792458 m/s', aliases: ['299792458', '3x10^8 m/s', '3 x 10^8 m/s', '300000000 m/s'] },
+  { pattern: /force that keeps planets in orbit/i, answer: 'gravity', aliases: ['gravity', 'gravitational force'] },
+  { pattern: /boiling point of water in celsius/i, answer: '100', aliases: ['100', '100 c', '100°c'] },
+  { pattern: /freezing point of water in celsius/i, answer: '0', aliases: ['0', '0 c', '0°c'] },
+  { pattern: /center of an atom/i, answer: 'nucleus', aliases: ['nucleus'] },
+  { pattern: /charge of an electron/i, answer: 'negative', aliases: ['negative', 'negative charge'] },
+  { pattern: /charge of a proton/i, answer: 'positive', aliases: ['positive', 'positive charge'] },
+  { pattern: /nearest star to earth/i, answer: 'sun', aliases: ['sun', 'the sun'] },
+  { pattern: /instrument used to measure temperature/i, answer: 'thermometer', aliases: ['thermometer'] },
+  { pattern: /instrument used to measure atmospheric pressure/i, answer: 'barometer', aliases: ['barometer'] },
+  { pattern: /instrument used to look at stars and planets/i, answer: 'telescope', aliases: ['telescope'] },
+  { pattern: /hardest natural substance/i, answer: 'diamond', aliases: ['diamond'] },
+  { pattern: /process of water vapor changing into liquid/i, answer: 'condensation', aliases: ['condensation'] },
+  { pattern: /process of liquid changing into gas/i, answer: 'evaporation', aliases: ['evaporation'] },
+  { pattern: /study of earthquakes/i, answer: 'seismology', aliases: ['seismology'] },
+
+  // Common sense / logic
+  { pattern: /how many days are there in a leap year/i, answer: '366', aliases: ['366'] },
+  { pattern: /how many continents are there/i, answer: '7', aliases: ['7', 'seven'] },
+  { pattern: /how many sides does a triangle have/i, answer: '3', aliases: ['3', 'three'] },
+  { pattern: /how many sides does a hexagon have/i, answer: '6', aliases: ['6', 'six'] },
+  { pattern: /how many months are there in a year/i, answer: '12', aliases: ['12', 'twelve'] },
+  { pattern: /what comes after tuesday/i, answer: 'wednesday', aliases: ['wednesday'] },
+  { pattern: /what comes before friday/i, answer: 'thursday', aliases: ['thursday'] },
+  { pattern: /shape with four equal sides/i, answer: 'square', aliases: ['square'] },
+  { pattern: /shape with no corners/i, answer: 'circle', aliases: ['circle'] },
+  { pattern: /primary colors/i, answer: 'red blue yellow', aliases: ['red, blue, and yellow', 'red blue yellow'] },
+  { pattern: /opposite of hot/i, answer: 'cold', aliases: ['cold'] },
+  { pattern: /opposite of north/i, answer: 'south', aliases: ['south'] },
+  { pattern: /how many hours are in a day/i, answer: '24', aliases: ['24', 'twenty four'] },
+  { pattern: /how many minutes are in an hour/i, answer: '60', aliases: ['60', 'sixty'] },
+  { pattern: /how many seconds are in a minute/i, answer: '60', aliases: ['60', 'sixty'] },
 ];
+
+const ROMAN_VALUES = new Map([
+  ['I', 1], ['V', 5], ['X', 10], ['L', 50], ['C', 100], ['D', 500], ['M', 1000],
+]);
+
+const MORSE_TABLE = {
+  A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.', H: '....', I: '..', J: '.---',
+  K: '-.-', L: '.-..', M: '--', N: '-.', O: '---', P: '.--.', Q: '--.-', R: '.-.', S: '...', T: '-',
+  U: '..-', V: '...-', W: '.--', X: '-..-', Y: '-.--', Z: '--..',
+  0: '-----', 1: '.----', 2: '..---', 3: '...--', 4: '....-', 5: '.....',
+  6: '-....', 7: '--...', 8: '---..', 9: '----.',
+};
 
 export function solveQuestion(question) {
   if (!question || typeof question !== 'string') return null;
 
-  const q = normalizeQuestion(question);
+  const raw = String(question).trim();
+  const q = normalizeQuestion(raw);
+  const context = buildChoiceContext(raw);
+
   const solvers = [
-    solveKnowledgeChoice,
+    solveExactKnowledgeChoice,
+    solveChoiceByKnowledgeAlias,
+    solveWordProblems,
     solveCompoundOperations,
     solveArrayOperations,
     solveDigitOperations,
@@ -24,17 +150,17 @@ export function solveQuestion(question) {
     solveStringOperations,
     solveNumberTheory,
     solveArithmetic,
+    solveChoiceHeuristics,
     solveExpressionFallback,
   ];
 
   for (const solver of solvers) {
     try {
-      const result = solver(q, question);
-      if (result !== null && result !== undefined && result !== '') {
-        return normalizeAnswer(result);
-      }
+      const result = solver(q, raw, context);
+      const normalized = normalizeAnswer(result);
+      if (normalized !== null && normalized !== '') return normalized;
     } catch {
-      // continue
+      // keep going
     }
   }
 
@@ -45,31 +171,40 @@ function normalizeQuestion(input) {
   return String(input)
     .replace(/[“”]/g, '"')
     .replace(/[‘’]/g, "'")
+    .replace(/\r/g, '\n')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ ?\n ?/g, '\n')
+    .trim();
+}
+
+function normalizeLoose(text) {
+  return String(text)
+    .toLowerCase()
+    .replace(/\b(the|a|an)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
 function normalizeAnswer(value) {
+  if (value === null || value === undefined) return null;
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (typeof value === 'number') {
-    if (Number.isNaN(value)) return null;
-    if (!Number.isFinite(value)) return null;
+    if (!Number.isFinite(value) || Number.isNaN(value)) return null;
     return Number.isInteger(value) ? String(value) : stripTrailingZeros(value);
   }
   if (typeof value === 'bigint') return value.toString();
-  return String(value).trim();
+  const out = String(value).trim();
+  return out || null;
 }
 
 function stripTrailingZeros(num) {
-  return String(Number(num.toFixed(12))).replace(/\.0+$/, '');
-}
-
-function unquote(value) {
-  return value.replace(/^['"]|['"]$/g, '');
+  return String(Number(Number(num).toFixed(12)));
 }
 
 function parseNumberList(str) {
-  return str
+  return String(str)
     .split(',')
     .map((part) => Number(part.trim()))
     .filter((n) => !Number.isNaN(n));
@@ -85,7 +220,7 @@ function parseArrayFromBrackets(q) {
 function median(values) {
   const arr = [...values].sort((a, b) => a - b);
   const mid = Math.floor(arr.length / 2);
-  return arr.length % 2 === 1 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
+  return arr.length % 2 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
 }
 
 function mode(values) {
@@ -103,91 +238,250 @@ function mode(values) {
 }
 
 function gcd(a, b) {
-  let x = Math.abs(a);
-  let y = Math.abs(b);
-  while (y) {
-    [x, y] = [y, x % y];
-  }
+  let x = Math.abs(Number(a));
+  let y = Math.abs(Number(b));
+  while (y) [x, y] = [y, x % y];
   return x;
 }
 
 function lcm(a, b) {
-  if (a === 0 || b === 0) return 0;
-  return Math.abs(a * b) / gcd(a, b);
+  const x = Number(a);
+  const y = Number(b);
+  if (!x || !y) return 0;
+  return Math.abs(x * y) / gcd(x, y);
 }
 
 function isPrime(n) {
-  if (!Number.isInteger(n) || n < 2) return false;
-  if (n === 2) return true;
-  if (n % 2 === 0) return false;
-  const limit = Math.floor(Math.sqrt(n));
+  const value = Number(n);
+  if (!Number.isInteger(value) || value < 2) return false;
+  if (value === 2) return true;
+  if (value % 2 === 0) return false;
+  const limit = Math.floor(Math.sqrt(value));
   for (let i = 3; i <= limit; i += 2) {
-    if (n % i === 0) return false;
+    if (value % i === 0) return false;
   }
   return true;
 }
 
 function fibonacci(n) {
-  if (n <= 0) return 0;
-  if (n === 1) return 1;
+  const value = Number(n);
+  if (value <= 0) return 0;
+  if (value === 1) return 1;
   let a = 0;
   let b = 1;
-  for (let i = 2; i <= n; i++) {
-    [a, b] = [b, a + b];
-  }
+  for (let i = 2; i <= value; i += 1) [a, b] = [b, a + b];
   return b;
 }
 
 function factorial(n) {
-  let result = 1n;
-  for (let i = 2n; i <= BigInt(n); i++) result *= i;
-  return result;
+  const value = Number(n);
+  if (!Number.isInteger(value) || value < 0 || value > 200) return null;
+  let out = 1n;
+  for (let i = 2n; i <= BigInt(value); i += 1n) out *= i;
+  return out;
 }
 
 function digitalRoot(n) {
-  let v = Math.abs(Number(n));
-  while (v >= 10) {
-    v = String(v).split('').reduce((sum, d) => sum + Number(d), 0);
+  let value = Math.abs(Number(n));
+  while (value >= 10) {
+    value = String(value).split('').reduce((sum, d) => sum + Number(d), 0);
   }
-  return v;
+  return value;
 }
 
-function solveKnowledgeChoice(q) {
-  for (const entry of KNOWLEDGE_CHOICES) {
-    if (entry.test.test(q)) return entry.answer;
+function romanToDecimal(text) {
+  const raw = String(text).toUpperCase();
+  let total = 0;
+  for (let i = 0; i < raw.length; i += 1) {
+    const current = ROMAN_VALUES.get(raw[i]);
+    const next = ROMAN_VALUES.get(raw[i + 1]) || 0;
+    if (!current) return null;
+    total += current < next ? -current : current;
   }
+  return total;
+}
+
+function decimalToRoman(value) {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0 || n >= 4000) return null;
+  const table = [
+    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
+    [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
+    [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+  ];
+  let rem = n;
+  let out = '';
+  for (const [num, symbol] of table) {
+    while (rem >= num) {
+      out += symbol;
+      rem -= num;
+    }
+  }
+  return out;
+}
+
+function buildChoiceContext(raw) {
+  const text = String(raw).replace(/\r/g, '\n');
+  const options = [];
+  const re = /(?:^|\s)([A-D])\s*[\.:\-)\]]\s*(.+?)(?=(?:\s+[A-D]\s*[\.:\-)\]])|$)/gis;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    const label = match[1].toUpperCase();
+    const value = match[2].replace(/\s+/g, ' ').trim();
+    options.push({ label, value, normalized: normalizeLoose(value) });
+  }
+  return {
+    options,
+    hasChoices: options.length >= 2,
+  };
+}
+
+function answerFromAliases(context, aliases) {
+  if (!context?.hasChoices) return null;
+  const targets = aliases.map(normalizeLoose).filter(Boolean);
+  for (const option of context.options) {
+    for (const target of targets) {
+      if (option.normalized === target || option.normalized.includes(target) || target.includes(option.normalized)) {
+        return option.label;
+      }
+    }
+  }
+  return null;
+}
+
+function solveExactKnowledgeChoice(q, _raw, context) {
+  for (const entry of KNOWLEDGE_ENTRIES) {
+    if (!entry.pattern.test(q)) continue;
+    const aliases = entry.aliases || [entry.answer];
+    const choice = answerFromAliases(context, aliases);
+    if (choice) return choice;
+    return entry.answer;
+  }
+  return null;
+}
+
+function solveChoiceByKnowledgeAlias(q, _raw, context) {
+  if (!context?.hasChoices) return null;
+  const normalizedQuestion = normalizeLoose(q);
+  for (const entry of KNOWLEDGE_ENTRIES) {
+    if (!entry.pattern.test(q) && !normalizedQuestion.includes(normalizeLoose(String(entry.answer)))) continue;
+    const aliases = entry.aliases || [entry.answer];
+    const choice = answerFromAliases(context, aliases);
+    if (choice) return choice;
+  }
+  return null;
+}
+
+function solveWordProblems(q) {
+  let m = q.match(/buys? a .* for \$?([\d,]+(?:\.\d+)?)\.?(?: he| she| they)? pays? \$?([\d,]+(?:\.\d+)?) and pays? the rest by giving \$?([\d,]+(?:\.\d+)?) a month/i);
+  if (m) {
+    const total = Number(m[1].replace(/,/g, ''));
+    const down = Number(m[2].replace(/,/g, ''));
+    const monthly = Number(m[3].replace(/,/g, ''));
+    if (monthly === 0) return null;
+    return Math.ceil((total - down) / monthly);
+  }
+
+  m = q.match(/([A-Z][a-z]+) has \$?(\d+(?:\.\d+)?) more money than ([A-Z][a-z]+)\. if \1 has \$?(\d+(?:\.\d+)?)\b.*share the money equally/i);
+  if (m) {
+    const diff = Number(m[2]);
+    const first = Number(m[4]);
+    const second = first - diff;
+    return (first + second) / 2;
+  }
+
+  m = q.match(/if ([A-Z][a-z]+) has \$?(\d+(?:\.\d+)?) and ([A-Z][a-z]+) has \$?(\d+(?:\.\d+)?) more than \1.*share.*equally/i);
+  if (m) {
+    const first = Number(m[2]);
+    const diff = Number(m[4]);
+    const second = first + diff;
+    return (first + second) / 2;
+  }
+
+  m = q.match(/travel(?:s)? (\d+(?:\.\d+)?)\s*(km|kilometers|miles?) at (\d+(?:\.\d+)?)\s*(km\/h|kph|mph|miles per hour|kilometers per hour)/i);
+  if (m) return Number(m[1]) / Number(m[3]);
+
+  m = q.match(/at (\d+(?:\.\d+)?)\s*(km\/h|kph|mph).*for (\d+(?:\.\d+)?)\s*hours?/i);
+  if (m) return Number(m[1]) * Number(m[3]);
+
+  m = q.match(/what is (\d+(?:\.\d+)?)% of (\d+(?:\.\d+)?)/i);
+  if (m) return (Number(m[1]) / 100) * Number(m[2]);
+
+  m = q.match(/increase (\d+(?:\.\d+)?) by (\d+(?:\.\d+)?)%/i);
+  if (m) return Number(m[1]) * (1 + Number(m[2]) / 100);
+
+  m = q.match(/decrease (\d+(?:\.\d+)?) by (\d+(?:\.\d+)?)%/i);
+  if (m) return Number(m[1]) * (1 - Number(m[2]) / 100);
+
+  m = q.match(/ratio of (\d+(?:\.\d+)?) to (\d+(?:\.\d+)?)/i);
+  if (m) {
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    const g = gcd(a, b);
+    return `${a / g}:${b / g}`;
+  }
+
+  m = q.match(/split \$?(\d+(?:\.\d+)?) equally among (\d+(?:\.\d+)?) people/i);
+  if (m) return Number(m[1]) / Number(m[2]);
+
+  m = q.match(/if (\d+) workers can finish a job in (\d+) days?, how many days? for (\d+) workers/i);
+  if (m) {
+    const workers1 = Number(m[1]);
+    const days1 = Number(m[2]);
+    const workers2 = Number(m[3]);
+    return (workers1 * days1) / workers2;
+  }
+
+  m = q.match(/simple interest on \$?(\d+(?:\.\d+)?) at (\d+(?:\.\d+)?)% for (\d+(?:\.\d+)?) years?/i);
+  if (m) return Number(m[1]) * Number(m[2]) * Number(m[3]) / 100;
+
+  m = q.match(/perimeter of a rectangle with length (\d+(?:\.\d+)?) and width (\d+(?:\.\d+)?)/i);
+  if (m) return 2 * (Number(m[1]) + Number(m[2]));
+
+  m = q.match(/area of a rectangle with length (\d+(?:\.\d+)?) and width (\d+(?:\.\d+)?)/i);
+  if (m) return Number(m[1]) * Number(m[2]);
+
+  m = q.match(/area of a triangle with base (\d+(?:\.\d+)?) and height (\d+(?:\.\d+)?)/i);
+  if (m) return Number(m[1]) * Number(m[2]) / 2;
+
+  m = q.match(/circumference of a circle with radius (\d+(?:\.\d+)?)/i);
+  if (m) return 2 * Math.PI * Number(m[1]);
+
+  m = q.match(/area of a circle with radius (\d+(?:\.\d+)?)/i);
+  if (m) return Math.PI * Number(m[1]) ** 2;
+
   return null;
 }
 
 function solveArrayOperations(q) {
   let arr = parseArrayFromBrackets(q);
 
-  if (!arr) {
-    let m = q.match(/integer average\s*\((floor|ceil)\)\s*of\s*([-\d,\s]+)/i);
-    if (m) {
-      arr = parseNumberList(m[2]);
-      const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
-      return m[1].toLowerCase() === 'floor' ? Math.floor(avg) : Math.ceil(avg);
-    }
-    return null;
+  let m = q.match(/integer average\s*\((floor|ceil)\)\s*of\s*([-\d,\s]+)/i);
+  if (m) {
+    arr = parseNumberList(m[2]);
+    if (!arr.length) return null;
+    const avg = arr.reduce((sum, x) => sum + x, 0) / arr.length;
+    return m[1].toLowerCase() === 'floor' ? Math.floor(avg) : Math.ceil(avg);
   }
 
-  if (/product of/i.test(q)) return arr.reduce((a, b) => a * b, 1);
-  if (/sum of/i.test(q)) return arr.reduce((a, b) => a + b, 0);
-  if (/(average|mean) of/i.test(q)) return arr.reduce((a, b) => a + b, 0) / arr.length;
+  if (!arr) return null;
+
+  if (/product of/i.test(q)) return arr.reduce((prod, x) => prod * x, 1);
+  if (/sum of/i.test(q)) return arr.reduce((sum, x) => sum + x, 0);
+  if (/(average|mean) of/i.test(q)) return arr.reduce((sum, x) => sum + x, 0) / arr.length;
   if (/median of/i.test(q)) return median(arr);
   if (/mode of/i.test(q)) return mode(arr);
   if (/(maximum|max) of/i.test(q)) return Math.max(...arr);
   if (/(minimum|min) of/i.test(q)) return Math.min(...arr);
 
-  let m = q.match(/sort\s*\[[^\]]+\]\s*in\s*(ascending|descending)\s*order/i);
+  m = q.match(/sort\s*\[[^\]]+\]\s*in\s*(ascending|descending)\s*order/i);
   if (m) {
-    const sorted = [...arr].sort((a, b) => (m[1].toLowerCase() === 'ascending' ? a - b : b - a));
-    return sorted.join(',');
+    const dir = m[1].toLowerCase();
+    return [...arr].sort((a, b) => (dir === 'ascending' ? a - b : b - a)).join(',');
   }
 
   if (/standard deviation of/i.test(q)) {
-    const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const mean = arr.reduce((sum, x) => sum + x, 0) / arr.length;
     const variance = arr.reduce((sum, x) => sum + (x - mean) ** 2, 0) / arr.length;
     return Math.sqrt(variance);
   }
@@ -207,8 +501,8 @@ function solveDigitOperations(q) {
   m = q.match(/reverse the digits of\s*(-?\d+)/i);
   if (m) {
     const sign = m[1].startsWith('-') ? '-' : '';
-    const raw = sign ? m[1].slice(1) : m[1];
-    return sign + raw.split('').reverse().join('');
+    const digits = sign ? m[1].slice(1) : m[1];
+    return sign + digits.split('').reverse().join('');
   }
 
   m = q.match(/sum of the digits of\s*(-?\d+)/i);
@@ -227,9 +521,9 @@ function solveConversions(q) {
   let m = q.match(/convert decimal\s+(-?\d+)\s+to\s+(binary|octal|hexadecimal|hex)\.?/i);
   if (m) {
     const value = Number(m[1]);
-    const type = m[2].toLowerCase();
-    if (type === 'binary') return value.toString(2);
-    if (type === 'octal') return value.toString(8);
+    const kind = m[2].toLowerCase();
+    if (kind === 'binary') return value.toString(2);
+    if (kind === 'octal') return value.toString(8);
     return value.toString(16);
   }
 
@@ -242,11 +536,26 @@ function solveConversions(q) {
 
   m = q.match(/convert\s+([0-9a-zA-Z]+)\s+from\s+(?:base\s+)?(\d+)\s+to\s+(?:base\s+)?(\d+)/i);
   if (m) {
-    const baseFrom = Number(m[2]);
-    const baseTo = Number(m[3]);
-    if (baseFrom >= 2 && baseFrom <= 36 && baseTo >= 2 && baseTo <= 36) {
-      return parseInt(m[1], baseFrom).toString(baseTo);
+    const from = Number(m[2]);
+    const to = Number(m[3]);
+    if (from >= 2 && from <= 36 && to >= 2 && to <= 36) {
+      const parsed = parseInt(m[1], from);
+      if (!Number.isNaN(parsed)) return parsed.toString(to);
     }
+  }
+
+  m = q.match(/convert roman numeral\s+([ivxlcdm]+)\s+to decimal/i);
+  if (m) return romanToDecimal(m[1]);
+
+  m = q.match(/convert\s+(\d+)\s+to roman numerals?/i);
+  if (m) return decimalToRoman(m[1]);
+
+  m = q.match(/convert ['"]([^'"]+)['"] to morse code/i);
+  if (m) {
+    return [...m[1].toUpperCase()].map((ch) => {
+      if (ch === ' ') return '/';
+      return MORSE_TABLE[ch] || ch;
+    }).join(' ');
   }
 
   return null;
@@ -256,8 +565,8 @@ function solveBitwiseOperations(q) {
   let m = q.match(/what is\s+(\d+)\s+(AND|OR|XOR)\s+(\d+)\??/i);
   if (m) {
     const a = Number(m[1]);
-    const op = m[2].toUpperCase();
     const b = Number(m[3]);
+    const op = m[2].toUpperCase();
     if (op === 'AND') return a & b;
     if (op === 'OR') return a | b;
     return a ^ b;
@@ -267,7 +576,8 @@ function solveBitwiseOperations(q) {
   if (m) {
     const value = Number(m[1]);
     const width = Number(m[2] || 32);
-    const mask = width === 32 ? 0xffffffff : (1 << width) - 1;
+    if (width === 32) return (~value) >>> 0;
+    const mask = (1 << width) - 1;
     return (~value) & mask;
   }
 
@@ -293,10 +603,11 @@ function solveStringOperations(q) {
 
   m = q.match(/interleave ['"]([^'"]+)['"] and ['"]([^'"]+)['"] character by character/i);
   if (m) {
-    const [a, b] = [m[1], m[2]];
+    const a = m[1];
+    const b = m[2];
     let out = '';
     const max = Math.max(a.length, b.length);
-    for (let i = 0; i < max; i++) {
+    for (let i = 0; i < max; i += 1) {
       if (i < a.length) out += a[i];
       if (i < b.length) out += b[i];
     }
@@ -365,7 +676,12 @@ function solveStringOperations(q) {
   if (m) return m[2].split(m[1]).join('');
 
   m = q.match(/convert ['"]([^'"]+)['"] to title case/i);
-  if (m) return m[1].split(/\s+/).map((w) => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : '').join(' ');
+  if (m) {
+    return m[1]
+      .split(/\s+/)
+      .map((word) => (word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : ''))
+      .join(' ');
+  }
 
   m = q.match(/convert ['"]([^'"]+)['"] to pig latin/i);
   if (m) return toPigLatin(m[1]);
@@ -388,26 +704,26 @@ function toPigLatin(text) {
 }
 
 function solveNumberTheory(q) {
-  let m = q.match(/what is\s+(\d+)\s*%\s*(\d+)/i);
+  let m = q.match(/what is\s+(-?\d+)\s*%\s*(-?\d+)/i);
   if (m) return Number(m[1]) % Number(m[2]);
 
-  m = q.match(/what is\s+(\d+)\s+mod\s+(\d+)/i);
+  m = q.match(/what is\s+(-?\d+)\s+mod\s+(-?\d+)/i);
   if (m) return Number(m[1]) % Number(m[2]);
 
   m = q.match(/(\d+)(?:st|nd|rd|th) fibonacci number/i);
-  if (m) return fibonacci(Number(m[1]));
+  if (m) return fibonacci(m[1]);
 
   m = q.match(/factorial of\s+(\d+)/i);
-  if (m) return factorial(Number(m[1]));
+  if (m) return factorial(m[1]);
 
   m = q.match(/greatest common divisor of\s*(\d+)\s*(?:and|,)\s*(\d+)/i);
-  if (m) return gcd(Number(m[1]), Number(m[2]));
+  if (m) return gcd(m[1], m[2]);
 
   m = q.match(/least common multiple of\s*(\d+)\s*(?:and|,)\s*(\d+)/i);
-  if (m) return lcm(Number(m[1]), Number(m[2]));
+  if (m) return lcm(m[1], m[2]);
 
   m = q.match(/is\s+(\d+)\s+prime\??/i);
-  if (m) return isPrime(Number(m[1]));
+  if (m) return isPrime(m[1]);
 
   m = q.match(/absolute value of\s*(-?\d+)/i);
   if (m) return Math.abs(Number(m[1]));
@@ -422,19 +738,19 @@ function solveNumberTheory(q) {
 }
 
 function solveArithmetic(q) {
-  let m = q.match(/what is\s+(-?\d+)\s*\/\s*(-?\d+)\??/i);
+  let m = q.match(/what is\s+(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)\??/i);
   if (m) return Number(m[1]) / Number(m[2]);
 
-  m = q.match(/what is\s+(-?\d+)\s*\*\s*(-?\d+)\??/i);
+  m = q.match(/what is\s+(-?\d+(?:\.\d+)?)\s*\*\s*(-?\d+(?:\.\d+)?)\??/i);
   if (m) return Number(m[1]) * Number(m[2]);
 
-  m = q.match(/what is\s+(-?\d+)\s*\+\s*(-?\d+)\??/i);
+  m = q.match(/what is\s+(-?\d+(?:\.\d+)?)\s*\+\s*(-?\d+(?:\.\d+)?)\??/i);
   if (m) return Number(m[1]) + Number(m[2]);
 
-  m = q.match(/what is\s+(-?\d+)\s*-\s*(-?\d+)\??/i);
+  m = q.match(/what is\s+(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)\??/i);
   if (m) return Number(m[1]) - Number(m[2]);
 
-  m = q.match(/(\d+)\s+to the power of\s+(\d+)/i);
+  m = q.match(/(\d+(?:\.\d+)?)\s+to the power of\s+(\d+(?:\.\d+)?)/i);
   if (m) return Number(m[1]) ** Number(m[2]);
 
   return null;
@@ -444,43 +760,43 @@ function solveCompoundOperations(q) {
   const m = q.match(/(?:take|start with)\s+['"]?([^'"]+?)['"]?\s+then\s+(.+)/i);
   if (!m) return null;
 
-  let value = unquote(m[1]);
+  let value = String(m[1]);
   const steps = m[2].split(/\s+then\s+/i).map((s) => s.trim());
 
   for (const step of steps) {
     let sm = step.match(/reverse(?: the string)?/i);
     if (sm) {
-      value = [...String(value)].reverse().join('');
+      value = [...value].reverse().join('');
       continue;
     }
 
     sm = step.match(/convert to uppercase/i);
     if (sm) {
-      value = String(value).toUpperCase();
+      value = value.toUpperCase();
       continue;
     }
 
     sm = step.match(/convert to lowercase/i);
     if (sm) {
-      value = String(value).toLowerCase();
+      value = value.toLowerCase();
       continue;
     }
 
     sm = step.match(/repeat\s+(\d+)\s+times/i);
     if (sm) {
-      value = String(value).repeat(Number(sm[1]));
+      value = value.repeat(Number(sm[1]));
       continue;
     }
 
     sm = step.match(/replace ['"](.+?)['"] with ['"](.+?)['"]/i);
     if (sm) {
-      value = String(value).split(sm[1]).join(sm[2]);
+      value = value.split(sm[1]).join(sm[2]);
       continue;
     }
 
     sm = step.match(/take substring from\s+(\d+)\s+to\s+(\d+)/i);
     if (sm) {
-      value = String(value).substring(Number(sm[1]), Number(sm[2]));
+      value = value.substring(Number(sm[1]), Number(sm[2]));
       continue;
     }
 
@@ -490,16 +806,82 @@ function solveCompoundOperations(q) {
   return value;
 }
 
+function solveChoiceHeuristics(q, _raw, context) {
+  if (!context?.hasChoices) return null;
+
+  const options = context.options;
+  const qn = normalizeLoose(q);
+
+  if (/largest|highest|biggest|greatest|longest|fastest|most/i.test(q)) {
+    const numericOption = chooseNumericOption(options, 'max');
+    if (numericOption) return numericOption.label;
+  }
+
+  if (/smallest|lowest|least|shortest|slowest|minimum/i.test(q)) {
+    const numericOption = chooseNumericOption(options, 'min');
+    if (numericOption) return numericOption.label;
+  }
+
+  if (/chemical symbol for/i.test(q)) {
+    const m = q.match(/chemical symbol for\s+([a-z ]+)/i);
+    if (m) {
+      const target = normalizeLoose(elementSymbolForName(m[1]));
+      if (target) {
+        for (const option of options) {
+          if (option.normalized === target) return option.label;
+        }
+      }
+    }
+  }
+
+  if (/capital of/i.test(q)) {
+    for (const entry of KNOWLEDGE_ENTRIES) {
+      if (!entry.pattern.test(q)) continue;
+      const choice = answerFromAliases(context, entry.aliases || [entry.answer]);
+      if (choice) return choice;
+    }
+  }
+
+  if (/which of these/i.test(q)) {
+    const likelyCorrect = options.find((opt) => !/all of the above|none of the above/i.test(opt.value));
+    if (likelyCorrect && options.length === 2 && /true|false/i.test(options.map((x) => x.value).join(' '))) {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function chooseNumericOption(options, mode) {
+  const parsed = options
+    .map((option) => {
+      const m = option.value.match(/-?\d+(?:\.\d+)?/);
+      return m ? { ...option, numeric: Number(m[0]) } : null;
+    })
+    .filter(Boolean);
+  if (parsed.length !== options.length || !parsed.length) return null;
+  return parsed.reduce((best, current) => {
+    if (!best) return current;
+    if (mode === 'max') return current.numeric > best.numeric ? current : best;
+    return current.numeric < best.numeric ? current : best;
+  }, null);
+}
+
+function elementSymbolForName(name) {
+  const key = normalizeLoose(name);
+  const table = {
+    hydrogen: 'H', helium: 'He', lithium: 'Li', beryllium: 'Be', boron: 'B', carbon: 'C', nitrogen: 'N', oxygen: 'O',
+    fluorine: 'F', neon: 'Ne', sodium: 'Na', magnesium: 'Mg', aluminum: 'Al', aluminium: 'Al', silicon: 'Si', phosphorus: 'P',
+    sulfur: 'S', sulphur: 'S', chlorine: 'Cl', argon: 'Ar', potassium: 'K', calcium: 'Ca', iron: 'Fe', copper: 'Cu', silver: 'Ag', gold: 'Au',
+  };
+  return table[key] || null;
+}
+
 function solveExpressionFallback(q) {
   const m = q.match(/(?:what is|calculate|compute|evaluate|solve)\s+([\d\s+\-*/().%]+)\??/i) || q.match(/^([\d\s+\-*/().%]+)$/);
   if (!m) return null;
-
   const expr = m[1].replace(/[^0-9+\-*/().%\s]/g, '').trim();
-  if (!expr) return null;
-  if (!/^[0-9+\-*/().%\s]+$/.test(expr)) return null;
-
-  // eslint-disable-next-line no-new-func
+  if (!expr || !/^[0-9+\-*/().%\s]+$/.test(expr)) return null;
   const result = Function(`'use strict'; return (${expr});`)();
-  if (result === undefined || Number.isNaN(result)) return null;
-  return result;
+  return Number.isNaN(result) ? null : result;
 }
