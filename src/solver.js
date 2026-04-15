@@ -117,6 +117,14 @@ const KNOWLEDGE_ENTRIES = [
   { pattern: /how many hours are in a day/i, answer: '24', aliases: ['24', 'twenty four'] },
   { pattern: /how many minutes are in an hour/i, answer: '60', aliases: ['60', 'sixty'] },
   { pattern: /how many seconds are in a minute/i, answer: '60', aliases: ['60', 'sixty'] },
+
+  // Music & Entertainment
+  { pattern: /stig anderson.*fifth member of which group/i, answer: 'abba', aliases: ['abba', 'abba'] },
+  { pattern: /fifth member of.*stig anderson/i, answer: 'abba', aliases: ['abba', 'abba'] },
+
+  // Sports
+  { pattern: /figure skater.*3 consecutive winter olympic gold medals/i, answer: 'sonja henie', aliases: ['sonja henie', 'sonja henie'] },
+  { pattern: /only figure skater.*3 consecutive.*olympic gold/i, answer: 'sonja henie', aliases: ['sonja henie', 'sonja henie'] },
 ];
 
 const ROMAN_VALUES = new Map([
