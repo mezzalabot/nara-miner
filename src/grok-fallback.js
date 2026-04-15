@@ -1,171 +1,201 @@
-// Grok (xAI) API Fallback for Trivia Questions
-// Hybrid approach: Local solver → Cache → Grok API (confidence >= 0.8) → Submit → Write-back cache
+// Grok (xAI) API Fallback for Trivia Questions - v3.0
+// Hybrid approach: Local solver → Cache → Grok-4-1-fast → Grok-4.20-reasoning (escalation)
+// From GPT-5.4: Two-tier fallback with smart conditions
 
-import { CONFIG } from './config.js';
+import OpenAI from 'openai';
 import fs from 'fs';
-import path from 'path';
+import { CONFIG } from './config.js';
 
-const CACHE_FILE = './facts.json';
-const API_TIMEOUT_MS = 2000; // 2 second max
-const CONFIDENCE_THRESHOLD = 0.8;
-const MIN_SLOTS_FOR_API = 10; // Don't use API if slots < 10
-const MIN_TIME_FOR_API = 5000; // Don't use API if < 5s remaining
+const XAI_API_KEY = process.env.XAI_API_KEY || CONFIG.XAI_API_KEY;
+const FACT_CACHE_PATH = process.env.FACT_CACHE_PATH || './facts-cache.json';
 
-// In-memory cache
-let factsCache = new Map();
+const grok = XAI_API_KEY
+  ? new OpenAI({
+      apiKey: XAI_API_KEY,
+      baseURL: 'https://api.x.ai/v1',
+      timeout: 1800,
+    })
+  : null;
 
-// Load cache from file on startup
-try {
-  if (fs.existsSync(CACHE_FILE)) {
-    const data = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-    for (const [key, value] of Object.entries(data)) {
-      factsCache.set(key, value);
-    }
-    console.log(`[GROK] Loaded ${factsCache.size} facts from cache`);
+function loadCache() {
+  try {
+    if (!fs.existsSync(FACT_CACHE_PATH)) return {};
+    return JSON.parse(fs.readFileSync(FACT_CACHE_PATH, 'utf8'));
+  } catch {
+    return {};
   }
-} catch (e) {
-  console.error('[GROK] Cache load error:', e.message);
 }
 
-// Normalize question for cache key
-function normalizeQuestion(q) {
-  return q
+function saveCache(cache) {
+  try {
+    fs.writeFileSync(FACT_CACHE_PATH, JSON.stringify(cache, null, 2));
+  } catch {
+    // ignore cache write failure
+  }
+}
+
+const factCache = loadCache();
+
+function normalizeQuestionKey(question) {
+  return String(question || '')
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
     .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 100); // First 100 chars as key
+    .replace(/[“""]/g, '"')
+    .replace(/[‘'']/g, "'")
+    .trim();
 }
 
-// Save cache to file
-function saveCache() {
+function cleanModelAnswer(answer) {
+  return String(answer || '')
+    .replace(/^[\"'`\s]+|[\"'`\s]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractOutputText(resp) {
+  if (typeof resp?.output_text === 'string' && resp.output_text.trim()) {
+    return resp.output_text.trim();
+  }
+
+  const chunks = [];
+  for (const item of resp?.output || []) {
+    if (item?.type !== 'message') continue;
+    for (const c of item?.content || []) {
+      if (typeof c?.text === 'string') chunks.push(c.text);
+      else if (typeof c?.value === 'string') chunks.push(c.value);
+    }
+  }
+  return chunks.join(' ').trim();
+}
+
+function shouldUseApiFallback({ timeLeftMs = 999999, remainingSlots = 999, force = false } = {}) {
+  if (force) return true;
+  if (timeLeftMs < 2500) return false;
+  if (remainingSlots <= 0) return false;
+  return true;
+}
+
+function shouldEscalateToReasoning({ timeLeftMs = 999999, remainingSlots = 999 } = {}) {
+  if (timeLeftMs < 5000) return false;
+  if (remainingSlots <= 2) return false;
+  return true;
+}
+
+const SYSTEM_PROMPT = [
+  'You answer quiz and trivia questions for an automated verifier.',
+  'Return ONLY the final answer text.',
+  'No explanation. No JSON. No bullets. No quotes.',
+  'Use canonical capitalization for proper nouns.',
+  'For multiple choice questions, return the FULL answer text, not the option letter.',
+  'For numeric answers, return digits only unless units are explicitly required.',
+  'Do not add extra words like "the answer is".',
+].join(' ');
+
+async function askGrok(question, model, timeoutMs) {
+  if (!grok) return null;
+
+  const client = new OpenAI({
+    apiKey: XAI_API_KEY,
+    baseURL: 'https://api.x.ai/v1',
+    timeout: timeoutMs,
+  });
+
+  const resp = await client.responses.create({
+    model,
+    store: false,
+    input: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: String(question || '').trim() },
+    ],
+  });
+
+  return cleanModelAnswer(extractOutputText(resp));
+}
+
+function isUsableAnswer(answer) {
+  if (!answer) return false;
+  if (answer.length > 120) return false;
+  if (/^(sorry|i don't know|unknown|not sure|cannot determine)\b/i.test(answer)) return false;
+  return true;
+}
+
+// Main fallback function with two-tier escalation
+export async function grokFallback(question, context = {}) {
+  const key = normalizeQuestionKey(question);
+
+  // Check cache first
+  if (factCache[key]) {
+    console.log(`[GROK] Cache hit: "${factCache[key]}"`);
+    return {
+      answer: factCache[key],
+      source: 'cache',
+    };
+  }
+
+  // Check if should use API
+  if (!shouldUseApiFallback(context)) {
+    console.log(`[GROK] Skip API: timeLeft=${context.timeLeftMs}ms, slots=${context.remainingSlots}`);
+    return null;
+  }
+
+  // Tier 1: Fast model (non-reasoning)
   try {
-    const data = Object.fromEntries(factsCache);
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(data, null, 2));
+    console.log(`[GROK] Trying grok-4-1-fast...`);
+    const fastAnswer = await askGrok(
+      question,
+      'grok-4-1-fast-non-reasoning',
+      1400
+    );
+
+    if (isUsableAnswer(fastAnswer)) {
+      factCache[key] = fastAnswer;
+      saveCache(factCache);
+      console.log(`[GROK] Fast success: "${fastAnswer}"`);
+      return {
+        answer: fastAnswer,
+        source: 'grok-fast',
+      };
+    }
   } catch (e) {
-    console.error('[GROK] Cache save error:', e.message);
+    console.log(`[GROK] Fast failed: ${e.message}`);
+    // Continue to reasoning tier
   }
-}
 
-// Call Grok API with structured output
-async function callGrokAPI(question, roundInfo = {}) {
-  const apiKey = process.env.XAI_API_KEY || CONFIG.XAI_API_KEY;
-  if (!apiKey) {
-    console.log('[GROK] No API key configured');
+  // Tier 2: Escalate to reasoning model (if conditions allow)
+  if (!shouldEscalateToReasoning(context)) {
+    console.log(`[GROK] Skip reasoning tier: timeLeft=${context.timeLeftMs}ms, slots=${context.remainingSlots}`);
     return null;
   }
-
-  // Skip if conditions not met
-  if (roundInfo.slots !== undefined && roundInfo.slots < MIN_SLOTS_FOR_API) {
-    console.log(`[GROK] Skip: only ${roundInfo.slots} slots left`);
-    return null;
-  }
-  if (roundInfo.timeRemaining !== undefined && roundInfo.timeRemaining < MIN_TIME_FOR_API) {
-    console.log(`[GROK] Skip: only ${roundInfo.timeRemaining}ms left`);
-    return null;
-  }
-
-  // Use fast non-reasoning model for live fallback (speed priority)
-  // grok-4-1-fast-non-reasoning: optimized for high-performance tool calling
-  const model = process.env.XAI_MODEL || CONFIG.XAI_MODEL || 'grok-4-1-fast';
-  
-  const schema = {
-    type: 'object',
-    properties: {
-      answer: { type: 'string', description: 'The answer to the question' },
-      confidence: { type: 'number', description: 'Confidence score 0-1' },
-      answer_type: { type: 'string', description: 'Type: person_name, place, number, etc' },
-      normalized_answer: { type: 'string', description: 'Lowercase, clean answer' }
-    },
-    required: ['answer', 'confidence', 'normalized_answer']
-  };
-
-  const prompt = `Answer this trivia question concisely:\n\n${question}\n\nProvide only the answer in the required JSON format.`;
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+    console.log(`[GROK] Escalating to grok-4.20-reasoning...`);
+    const slowAnswer = await askGrok(
+      question,
+      'grok-4.20-reasoning',
+      2600
+    );
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [{ role: 'user', content: prompt }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'answer_schema',
-            schema: schema
-          }
-        },
-        max_tokens: 100,
-        temperature: 0.1
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      console.log(`[GROK] API error: ${response.status}`);
-      return null;
+    if (isUsableAnswer(slowAnswer)) {
+      factCache[key] = slowAnswer;
+      saveCache(factCache);
+      console.log(`[GROK] Reasoning success: "${slowAnswer}"`);
+      return {
+        answer: slowAnswer,
+        source: 'grok-4.20',
+      };
     }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) return null;
-
-    const result = JSON.parse(content);
-    
-    console.log(`[GROK] Answer: "${result.answer}" (confidence: ${result.confidence})`);
-    
-    if (result.confidence >= CONFIDENCE_THRESHOLD) {
-      return result.normalized_answer || result.answer;
-    }
-    
-    console.log(`[GROK] Confidence too low: ${result.confidence}`);
-    return null;
-    
   } catch (e) {
-    if (e.name === 'AbortError') {
-      console.log('[GROK] Timeout - API too slow');
-    } else {
-      console.log(`[GROK] Error: ${e.message}`);
-    }
+    console.log(`[GROK] Reasoning failed: ${e.message}`);
     return null;
   }
-}
 
-// Main fallback function
-export async function grokFallback(question, roundInfo = {}) {
-  // 1. Check cache first
-  const cacheKey = normalizeQuestion(question);
-  if (factsCache.has(cacheKey)) {
-    console.log(`[GROK] Cache hit: "${factsCache.get(cacheKey)}"`);
-    return factsCache.get(cacheKey);
-  }
-
-  // 2. Call Grok API
-  const answer = await callGrokAPI(question, roundInfo);
-  
-  if (answer) {
-    // 3. Save to cache (write-back)
-    factsCache.set(cacheKey, answer);
-    saveCache();
-    console.log(`[GROK] Cached: "${answer}"`);
-  }
-  
-  return answer;
+  return null;
 }
 
 // Get cache stats
 export function getCacheStats() {
   return {
-    size: factsCache.size,
-    file: CACHE_FILE
+    size: Object.keys(factCache).length,
+    file: FACT_CACHE_PATH,
   };
 }
