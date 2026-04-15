@@ -113,6 +113,10 @@ const KNOWLEDGE_ENTRIES = [
   { pattern: /cole porter play.*first tony award.*best musical.*1949/i, answer: 'kiss me, kate', aliases: ['kiss me, kate', 'kiss me kate'] },
   { pattern: /first tony award.*best musical.*1949.*cole porter/i, answer: 'kiss me, kate', aliases: ['kiss me, kate', 'kiss me kate'] },
 
+  // TV Series
+  { pattern: /thunderbirds.*parker was chauffeur to whom/i, answer: 'lady penelope', aliases: ['lady penelope'] },
+  { pattern: /parker.*chauffeur.*thunderbirds/i, answer: 'lady penelope', aliases: ['lady penelope'] },
+
   // Common sense / logic
   { pattern: /how many days are there in a leap year/i, answer: '366', aliases: ['366'] },
   { pattern: /how many continents are there/i, answer: '7', aliases: ['7', 'seven'] },
