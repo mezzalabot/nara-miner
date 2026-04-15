@@ -122,6 +122,10 @@ const KNOWLEDGE_ENTRIES = [
   { pattern: /appointed on june 22nd 2011.*manager of birmingham city fc/i, answer: 'chris hughton', aliases: ['chris hughton'] },
   { pattern: /manager of birmingham city fc.*june 22.*2011/i, answer: 'chris hughton', aliases: ['chris hughton'] },
 
+  // Geography
+  { pattern: /andorra.*located in which mountain range/i, answer: 'pyrenees', aliases: ['pyrenees', 'the pyrenees'] },
+  { pattern: /landlocked country of andorra.*mountain range/i, answer: 'pyrenees', aliases: ['pyrenees', 'the pyrenees'] },
+
   // Math - Percentage word problems
   { pattern: /20% of the students are in the band.*168 students are in the band/i, answer: '840', aliases: ['840'] },
   { pattern: /20%.*students.*band.*168.*how many students/i, answer: '840', aliases: ['840'] },
