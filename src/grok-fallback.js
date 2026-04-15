@@ -65,7 +65,7 @@ async function callGrokAPI(question, roundInfo = {}) {
     return null;
   }
 
-  const model = process.env.XAI_MODEL || CONFIG.XAI_MODEL || 'grok-2-1212';
+  const model = process.env.XAI_MODEL || CONFIG.XAI_MODEL || 'grok-4';
   
   const schema = {
     type: 'object',
