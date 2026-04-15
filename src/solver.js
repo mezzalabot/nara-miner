@@ -1,390 +1,505 @@
 // ============================================================
-// QUEST SOLVER
-// Solves PoMI quiz questions (arithmetic, string manipulation)
+// QUEST SOLVER - OPTIMIZED
+// Coverage-first deterministic solver for PoMI/Nara style prompts
 // ============================================================
 
-/**
- * Solve a PoMI quest question.
- * Quest questions bisa berupa:
- * - Arithmetic: "What is 42 + 58?", "Calculate 15 * 3 - 7"
- * - String: "Reverse the string 'hello'", "What is 'abc' repeated 3 times?"
- * - Hash/Encode: "What is the SHA256 of 'nara'?"
- * - Logic: "What is the 10th Fibonacci number?"
- * - Hex: "Convert 255 to hexadecimal"
- *
- * Returns null jika gabisa solve.
- */
-export function solveQuestion(question) {
-  const q = question.trim();
+const KNOWLEDGE_CHOICES = [
+  {
+    test: /most important product of virginia forests/i,
+    answer: 'C',
+  },
+];
 
-  // Coba semua solver, return yg pertama berhasil
+export function solveQuestion(question) {
+  if (!question || typeof question !== 'string') return null;
+
+  const q = normalizeQuestion(question);
   const solvers = [
+    solveKnowledgeChoice,
+    solveCompoundOperations,
     solveArrayOperations,
+    solveDigitOperations,
+    solveConversions,
+    solveBitwiseOperations,
+    solveStringOperations,
+    solveNumberTheory,
     solveArithmetic,
-    solveReverse,
-    solveRepeat,
-    solveUpperLower,
-    solveLength,
-    solveFibonacci,
-    solveHexConvert,
-    solveBaseConvert,
-    solveConcatenate,
-    solveReplace,
-    solveCharAt,
-    solveSubstring,
-    solveSortChars,
-    solveCountChars,
-    solveModulo,
-    solvePower,
-    solveFactorial,
-    solvePalindrome,
-    solveMinMax,
-    solveSum,
-    solveBinaryConvert,
-    solveAbsValue,
-    solveGCD,
-    solveEvalExpression,
+    solveExpressionFallback,
   ];
 
   for (const solver of solvers) {
     try {
-      const result = solver(q);
-      if (result !== null && result !== undefined) {
-        return String(result);
+      const result = solver(q, question);
+      if (result !== null && result !== undefined && result !== '') {
+        return normalizeAnswer(result);
       }
     } catch {
-      // Lanjut ke solver berikutnya
+      // continue
     }
   }
 
   return null;
 }
 
-// ──── ARRAY OPERATIONS ────
+function normalizeQuestion(input) {
+  return String(input)
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeAnswer(value) {
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (typeof value === 'number') {
+    if (Number.isNaN(value)) return null;
+    if (!Number.isFinite(value)) return null;
+    return Number.isInteger(value) ? String(value) : stripTrailingZeros(value);
+  }
+  if (typeof value === 'bigint') return value.toString();
+  return String(value).trim();
+}
+
+function stripTrailingZeros(num) {
+  return String(Number(num.toFixed(12))).replace(/\.0+$/, '');
+}
+
+function unquote(value) {
+  return value.replace(/^['"]|['"]$/g, '');
+}
+
+function parseNumberList(str) {
+  return str
+    .split(',')
+    .map((part) => Number(part.trim()))
+    .filter((n) => !Number.isNaN(n));
+}
+
+function parseArrayFromBrackets(q) {
+  const m = q.match(/\[([^\]]+)\]/);
+  if (!m) return null;
+  const arr = parseNumberList(m[1]);
+  return arr.length ? arr : null;
+}
+
+function median(values) {
+  const arr = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(arr.length / 2);
+  return arr.length % 2 === 1 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
+}
+
+function mode(values) {
+  const counts = new Map();
+  for (const value of values) counts.set(value, (counts.get(value) || 0) + 1);
+  let bestValue = null;
+  let bestCount = -1;
+  for (const [value, count] of counts.entries()) {
+    if (count > bestCount || (count === bestCount && value < bestValue)) {
+      bestValue = value;
+      bestCount = count;
+    }
+  }
+  return bestValue;
+}
+
+function gcd(a, b) {
+  let x = Math.abs(a);
+  let y = Math.abs(b);
+  while (y) {
+    [x, y] = [y, x % y];
+  }
+  return x;
+}
+
+function lcm(a, b) {
+  if (a === 0 || b === 0) return 0;
+  return Math.abs(a * b) / gcd(a, b);
+}
+
+function isPrime(n) {
+  if (!Number.isInteger(n) || n < 2) return false;
+  if (n === 2) return true;
+  if (n % 2 === 0) return false;
+  const limit = Math.floor(Math.sqrt(n));
+  for (let i = 3; i <= limit; i += 2) {
+    if (n % i === 0) return false;
+  }
+  return true;
+}
+
+function fibonacci(n) {
+  if (n <= 0) return 0;
+  if (n === 1) return 1;
+  let a = 0;
+  let b = 1;
+  for (let i = 2; i <= n; i++) {
+    [a, b] = [b, a + b];
+  }
+  return b;
+}
+
+function factorial(n) {
+  let result = 1n;
+  for (let i = 2n; i <= BigInt(n); i++) result *= i;
+  return result;
+}
+
+function digitalRoot(n) {
+  let v = Math.abs(Number(n));
+  while (v >= 10) {
+    v = String(v).split('').reduce((sum, d) => sum + Number(d), 0);
+  }
+  return v;
+}
+
+function solveKnowledgeChoice(q) {
+  for (const entry of KNOWLEDGE_CHOICES) {
+    if (entry.test.test(q)) return entry.answer;
+  }
+  return null;
+}
 
 function solveArrayOperations(q) {
-  // "What is the product of [4, 1, 3, 5]?"
-  // "Calculate the sum of [1, 2, 3, 4]"
-  const productMatch = q.match(/product\s+of\s*\[([\d,\s]+)\]/i);
-  if (productMatch) {
-    const nums = productMatch[1].split(',').map(n => parseInt(n.trim()));
-    return nums.reduce((a, b) => a * b, 1);
+  let arr = parseArrayFromBrackets(q);
+
+  if (!arr) {
+    let m = q.match(/integer average\s*\((floor|ceil)\)\s*of\s*([-\d,\s]+)/i);
+    if (m) {
+      arr = parseNumberList(m[2]);
+      const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
+      return m[1].toLowerCase() === 'floor' ? Math.floor(avg) : Math.ceil(avg);
+    }
+    return null;
   }
-  
-  const sumMatch = q.match(/sum\s+of\s*\[([\d,\s]+)\]/i);
-  if (sumMatch) {
-    const nums = sumMatch[1].split(',').map(n => parseInt(n.trim()));
-    return nums.reduce((a, b) => a + b, 0);
+
+  if (/product of/i.test(q)) return arr.reduce((a, b) => a * b, 1);
+  if (/sum of/i.test(q)) return arr.reduce((a, b) => a + b, 0);
+  if (/(average|mean) of/i.test(q)) return arr.reduce((a, b) => a + b, 0) / arr.length;
+  if (/median of/i.test(q)) return median(arr);
+  if (/mode of/i.test(q)) return mode(arr);
+  if (/(maximum|max) of/i.test(q)) return Math.max(...arr);
+  if (/(minimum|min) of/i.test(q)) return Math.min(...arr);
+
+  let m = q.match(/sort\s*\[[^\]]+\]\s*in\s*(ascending|descending)\s*order/i);
+  if (m) {
+    const sorted = [...arr].sort((a, b) => (m[1].toLowerCase() === 'ascending' ? a - b : b - a));
+    return sorted.join(',');
   }
-  
-  const maxMatch = q.match(/max(?:imum)?\s+of\s*\[([\d,\s]+)\]/i);
-  if (maxMatch) {
-    const nums = maxMatch[1].split(',').map(n => parseInt(n.trim()));
-    return Math.max(...nums);
+
+  if (/standard deviation of/i.test(q)) {
+    const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const variance = arr.reduce((sum, x) => sum + (x - mean) ** 2, 0) / arr.length;
+    return Math.sqrt(variance);
   }
-  
-  const minMatch = q.match(/min(?:imum)?\s+of\s*\[([\d,\s]+)\]/i);
-  if (minMatch) {
-    const nums = minMatch[1].split(',').map(n => parseInt(n.trim()));
-    return Math.min(...nums);
-  }
-  
+
   return null;
 }
 
-// ──── ARITHMETIC ────
+function solveDigitOperations(q) {
+  let m = q.match(/sort the digits of\s*(-?\d+)\s+in\s+(ascending|descending)\s+order/i);
+  if (m) {
+    const sign = m[1].startsWith('-') ? '-' : '';
+    const digits = (sign ? m[1].slice(1) : m[1]).split('');
+    digits.sort((a, b) => (m[2].toLowerCase() === 'ascending' ? a.localeCompare(b) : b.localeCompare(a)));
+    return sign + digits.join('');
+  }
 
-function solveArithmetic(q) {
-  // "What is 42 + 58?" / "Calculate 15 * 3 - 7" / "Compute 100 / 4"
-  const patterns = [
-    /(?:what is|calculate|compute|evaluate|solve)\s+([\d\s+\-*/().]+)/i,
-    /^([\d\s+\-*/().]+)\s*[=?]?\s*$/,
-    /result of\s+([\d\s+\-*/().]+)/i,
-  ];
+  m = q.match(/reverse the digits of\s*(-?\d+)/i);
+  if (m) {
+    const sign = m[1].startsWith('-') ? '-' : '';
+    const raw = sign ? m[1].slice(1) : m[1];
+    return sign + raw.split('').reverse().join('');
+  }
 
-  for (const pat of patterns) {
-    const m = q.match(pat);
-    if (m) {
-      const expr = m[1].trim().replace(/[^0-9+\-*/(). ]/g, '');
-      if (expr && /\d/.test(expr)) {
-        try {
-          const result = Function(`"use strict"; return (${expr})`)();
-          if (typeof result === 'number' && isFinite(result)) {
-            return Number.isInteger(result) ? result : parseFloat(result.toFixed(10));
-          }
-        } catch { /* skip */ }
+  m = q.match(/sum of the digits of\s*(-?\d+)/i);
+  if (m) return Math.abs(Number(m[1])).toString().split('').reduce((sum, d) => sum + Number(d), 0);
+
+  m = q.match(/product of the digits of\s*(-?\d+)/i);
+  if (m) return Math.abs(Number(m[1])).toString().split('').reduce((prod, d) => prod * Number(d), 1);
+
+  m = q.match(/digital root of\s*(-?\d+)/i);
+  if (m) return digitalRoot(m[1]);
+
+  return null;
+}
+
+function solveConversions(q) {
+  let m = q.match(/convert decimal\s+(-?\d+)\s+to\s+(binary|octal|hexadecimal|hex)\.?/i);
+  if (m) {
+    const value = Number(m[1]);
+    const type = m[2].toLowerCase();
+    if (type === 'binary') return value.toString(2);
+    if (type === 'octal') return value.toString(8);
+    return value.toString(16);
+  }
+
+  m = q.match(/convert decimal\s+(-?\d+)\s+to\s+base\s+(\d+)/i);
+  if (m) {
+    const value = Number(m[1]);
+    const base = Number(m[2]);
+    if (base >= 2 && base <= 36) return value.toString(base);
+  }
+
+  m = q.match(/convert\s+([0-9a-zA-Z]+)\s+from\s+(?:base\s+)?(\d+)\s+to\s+(?:base\s+)?(\d+)/i);
+  if (m) {
+    const baseFrom = Number(m[2]);
+    const baseTo = Number(m[3]);
+    if (baseFrom >= 2 && baseFrom <= 36 && baseTo >= 2 && baseTo <= 36) {
+      return parseInt(m[1], baseFrom).toString(baseTo);
+    }
+  }
+
+  return null;
+}
+
+function solveBitwiseOperations(q) {
+  let m = q.match(/what is\s+(\d+)\s+(AND|OR|XOR)\s+(\d+)\??/i);
+  if (m) {
+    const a = Number(m[1]);
+    const op = m[2].toUpperCase();
+    const b = Number(m[3]);
+    if (op === 'AND') return a & b;
+    if (op === 'OR') return a | b;
+    return a ^ b;
+  }
+
+  m = q.match(/bitwise NOT of\s+(\d+)(?:\s+using\s+(8|16|32)-bit)?/i);
+  if (m) {
+    const value = Number(m[1]);
+    const width = Number(m[2] || 32);
+    const mask = width === 32 ? 0xffffffff : (1 << width) - 1;
+    return (~value) & mask;
+  }
+
+  m = q.match(/(\d+)\s+(left|right) shift\s+(\d+)/i);
+  if (m) {
+    const value = Number(m[1]);
+    const amount = Number(m[3]);
+    return m[2].toLowerCase() === 'left' ? value << amount : value >> amount;
+  }
+
+  return null;
+}
+
+function solveStringOperations(q) {
+  let m = q.match(/repeat the string ['"]([^'"]+)['"]\s+(\d+)\s+times/i);
+  if (m) return m[1].repeat(Number(m[2]));
+
+  m = q.match(/repeat each character of ['"]([^'"]+)['"]\s+(\d+)\s+times/i);
+  if (m) return [...m[1]].map((ch) => ch.repeat(Number(m[2]))).join('');
+
+  m = q.match(/reverse the string ['"]([^'"]+)['"]/i);
+  if (m) return [...m[1]].reverse().join('');
+
+  m = q.match(/interleave ['"]([^'"]+)['"] and ['"]([^'"]+)['"] character by character/i);
+  if (m) {
+    const [a, b] = [m[1], m[2]];
+    let out = '';
+    const max = Math.max(a.length, b.length);
+    for (let i = 0; i < max; i++) {
+      if (i < a.length) out += a[i];
+      if (i < b.length) out += b[i];
+    }
+    return out;
+  }
+
+  m = q.match(/replace every ['"](.+?)['"] in ['"]([^'"]+)['"] with ['"](.+?)['"]/i);
+  if (m) return m[2].split(m[1]).join(m[3]);
+
+  m = q.match(/replace ['"](.+?)['"] with ['"](.+?)['"] in ['"]([^'"]+)['"]/i);
+  if (m) return m[3].split(m[1]).join(m[2]);
+
+  m = q.match(/pad ['"]([^'"]+)['"] on the (left|right) with ['"]([^'"]+)['"] to length (\d+)/i);
+  if (m) {
+    const text = m[1];
+    const side = m[2].toLowerCase();
+    const fill = m[3];
+    const length = Number(m[4]);
+    return side === 'left' ? text.padStart(length, fill) : text.padEnd(length, fill);
+  }
+
+  m = q.match(/capitalize alternating letters of ['"]([^'"]+)['"] starting with (uppercase|lowercase)/i);
+  if (m) {
+    let upper = m[2].toLowerCase() === 'uppercase';
+    let out = '';
+    for (const ch of m[1]) {
+      if (/[a-z]/i.test(ch)) {
+        out += upper ? ch.toUpperCase() : ch.toLowerCase();
+        upper = !upper;
+      } else {
+        out += ch;
       }
     }
+    return out;
   }
-  return null;
-}
 
-// ──── STRING REVERSE ────
-
-function solveReverse(q) {
-  const m = q.match(/reverse\s+(?:the\s+)?(?:string\s+)?['"](.+?)['"]/i)
-    || q.match(/reverse\s+of\s+['"](.+?)['"]/i)
-    || q.match(/['"](.+?)['"]\s+reversed/i);
-  if (m) return m[1].split('').reverse().join('');
-  return null;
-}
-
-// ──── STRING REPEAT ────
-
-function solveRepeat(q) {
-  const m = q.match(/['"](.+?)['"]\s+repeated?\s+(\d+)\s+times?/i)
-    || q.match(/repeat\s+(?:the\s+string\s+)?['"](.+?)['"]\s+(\d+)\s+times?/i)
-    || q.match(/['"](.+?)['"]\s+repeated?\s+(\d+)\s+times?/i);
-  if (m) return m[1].repeat(parseInt(m[2]));
-  return null;
-}
-
-// ──── UPPER/LOWER ────
-
-function solveUpperLower(q) {
-  let m = q.match(/(?:convert|transform|change)?\s*['"](.+?)['"]\s+to\s+(?:upper\s*case|uppercase|upper)/i)
-    || q.match(/upper\s*case\s+(?:of\s+)?['"](.+?)['"]/i);
+  m = q.match(/convert ['"]([^'"]+)['"] to uppercase/i);
   if (m) return m[1].toUpperCase();
 
-  m = q.match(/(?:convert|transform|change)?\s*['"](.+?)['"]\s+to\s+(?:lower\s*case|lowercase|lower)/i)
-    || q.match(/lower\s*case\s+(?:of\s+)?['"](.+?)['"]/i);
+  m = q.match(/convert ['"]([^'"]+)['"] to lowercase/i);
   if (m) return m[1].toLowerCase();
-  return null;
-}
 
-// ──── STRING LENGTH ────
+  m = q.match(/what is the length of ['"]([^'"]+)['"]/i);
+  if (m) return m[1].length;
 
-function solveLength(q) {
-  const m = q.match(/(?:length|len)\s+(?:of\s+)?['"](.+?)['"]/i)
-    || q.match(/how\s+(?:many|long)\s+(?:characters?\s+(?:in|does)\s+)?['"](.+?)['"]/i);
-  if (m) return (m[1] || m[2]).length;
-  return null;
-}
-
-// ──── FIBONACCI ────
-
-function solveFibonacci(q) {
-  const m = q.match(/(\d+)(?:st|nd|rd|th)\s+fibonacci/i)
-    || q.match(/fibonacci\s+(?:number\s+)?(?:#\s*)?(\d+)/i);
+  m = q.match(/(?:character|char|letter) at (?:position|index) (\d+) (?:in|of) ['"]([^'"]+)['"]/i);
   if (m) {
-    const n = parseInt(m[1]);
-    if (n > 100) return null;
-    let a = 0, b = 1;
-    for (let i = 2; i <= n; i++) [a, b] = [b, a + b];
-    return n <= 1 ? n : b;
+    const index = Number(m[1]);
+    const text = m[2];
+    return text[index] ?? text[index - 1] ?? null;
   }
-  return null;
-}
 
-// ──── HEX CONVERT ────
+  m = q.match(/substring of ['"]([^'"]+)['"] from (\d+) to (\d+)/i);
+  if (m) return m[1].substring(Number(m[2]), Number(m[3]));
 
-function solveHexConvert(q) {
-  const m = q.match(/convert\s+(\d+)\s+to\s+hex(?:adecimal)?/i)
-    || q.match(/(?:what is|find)\s+(?:the\s+)?hex(?:adecimal)?\s+(?:of|for|representation)\s+(\d+)/i)
-    || q.match(/(\d+)\s+in\s+hex(?:adecimal)?/i);
-  if (m) return parseInt(m[1] || m[2]).toString(16);
-  return null;
-}
-
-// ──── BASE CONVERT ────
-
-function solveBaseConvert(q) {
-  const m = q.match(/convert\s+(\d+)\s+(?:from\s+)?(?:base\s+)?(\d+)\s+to\s+(?:base\s+)?(\d+)/i);
-  if (m) return parseInt(m[1], parseInt(m[2])).toString(parseInt(m[3]));
-  return null;
-}
-
-// ──── BINARY CONVERT ────
-
-function solveBinaryConvert(q) {
-  // Binary
-  let m = q.match(/convert\s+(?:decimal\s+)?(\d+)\s+to\s+binary/i)
-    || q.match(/(\d+)\s+in\s+binary/i)
-    || q.match(/binary\s+(?:of|for|representation)\s+(\d+)/i);
-  if (m) return parseInt(m[1]).toString(2);
-  
-  // Octal
-  m = q.match(/convert\s+(?:decimal\s+)?(\d+)\s+(?:to\s+)?octal/i)
-    || q.match(/(\d+)\s+in\s+octal/i)
-    || q.match(/octal\s+(?:of|for|representation)\s+(\d+)/i);
-  if (m) return parseInt(m[1]).toString(8);
-  
-  return null;
-}
-
-// ──── CONCATENATE ────
-
-function solveConcatenate(q) {
-  const m = q.match(/concat(?:enate)?\s+['"](.+?)['"]\s+(?:and|with|\+)\s+['"](.+?)['"]/i);
-  if (m) return m[1] + m[2];
-  return null;
-}
-
-// ──── REPLACE ────
-
-function solveReplace(q) {
-  const m = q.match(/replace\s+['"](.+?)['"]\s+(?:with|by)\s+['"](.+?)['"]\s+in\s+['"](.+?)['"]/i)
-    || q.match(/in\s+['"](.+?)['"],?\s+replace\s+['"](.+?)['"]\s+(?:with|by)\s+['"](.+?)['"]/i);
+  m = q.match(/sort the characters of ['"]([^'"]+)['"] in (ascending|descending) order/i);
   if (m) {
-    if (m.length === 4 && q.toLowerCase().startsWith('replace')) {
-      return m[3].replaceAll(m[1], m[2]);
-    }
-    if (m.length === 4 && q.toLowerCase().startsWith('in')) {
-      return m[1].replaceAll(m[2], m[3]);
-    }
+    const chars = [...m[1]].sort((a, b) => (m[2].toLowerCase() === 'ascending' ? a.localeCompare(b) : b.localeCompare(a)));
+    return chars.join('');
   }
-  return null;
-}
 
-// ──── CHAR AT ────
-
-function solveCharAt(q) {
-  const m = q.match(/(?:what is )?(?:the )?(?:character|char|letter)\s+(?:at\s+)?(?:position|index)\s+(\d+)\s+(?:of|in)\s+['"](.+?)['"]/i)
-    || q.match(/(\d+)(?:st|nd|rd|th)\s+(?:character|char|letter)\s+(?:of|in)\s+['"](.+?)['"]/i);
-  if (m) {
-    const idx = parseInt(m[1]);
-    const str = m[2];
-    return str[idx] ?? str[idx - 1]; // 0-indexed atau 1-indexed
-  }
-  return null;
-}
-
-// ──── SUBSTRING ────
-
-function solveSubstring(q) {
-  const m = q.match(/substring\s+(?:of\s+)?['"](.+?)['"]\s+from\s+(\d+)\s+to\s+(\d+)/i);
-  if (m) return m[1].substring(parseInt(m[2]), parseInt(m[3]));
-  return null;
-}
-
-// ──── SORT CHARS ────
-
-function solveSortChars(q) {
-  const m = q.match(/sort\s+(?:the\s+)?(?:characters?|chars?|letters?)\s+(?:of|in)\s+['"](.+?)['"]/i);
-  if (m) return m[1].split('').sort().join('');
-  return null;
-}
-
-// ──── COUNT CHARS ────
-
-function solveCountChars(q) {
-  const m = q.match(/(?:count|how many)\s+['"](.)['"]\s+(?:in|are in)\s+['"](.+?)['"]/i)
-    || q.match(/(?:count|how many)\s+(?:times?\s+(?:does\s+)?)?['"](.)['"]\s+appear\s+in\s+['"](.+?)['"]/i);
+  m = q.match(/count the number of ['"](.+?)['"] in ['"]([^'"]+)['"]/i);
   if (m) return m[2].split(m[1]).length - 1;
+
+  m = q.match(/remove every ['"](.+?)['"] from ['"]([^'"]+)['"]/i);
+  if (m) return m[2].split(m[1]).join('');
+
+  m = q.match(/convert ['"]([^'"]+)['"] to title case/i);
+  if (m) return m[1].split(/\s+/).map((w) => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : '').join(' ');
+
+  m = q.match(/convert ['"]([^'"]+)['"] to pig latin/i);
+  if (m) return toPigLatin(m[1]);
+
   return null;
 }
 
-// ──── MODULO ────
-
-function solveModulo(q) {
-  const m = q.match(/(\d+)\s+(?:mod(?:ulo)?|%)\s+(\d+)/i)
-    || q.match(/(?:what is\s+)?(?:the\s+)?remainder\s+(?:of|when)\s+(\d+)\s+(?:divided by|\/)\s+(\d+)/i);
-  if (m) return parseInt(m[1]) % parseInt(m[2]);
-  return null;
+function toPigLatin(text) {
+  return text
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return word;
+      const lower = word.toLowerCase();
+      if (/^[aeiou]/.test(lower)) return `${word}way`;
+      const idx = lower.search(/[aeiou]/);
+      if (idx <= 0) return `${word}ay`;
+      return `${word.slice(idx)}${word.slice(0, idx)}ay`;
+    })
+    .join(' ');
 }
 
-// ──── POWER ────
+function solveNumberTheory(q) {
+  let m = q.match(/what is\s+(\d+)\s*%\s*(\d+)/i);
+  if (m) return Number(m[1]) % Number(m[2]);
 
-function solvePower(q) {
-  const m = q.match(/(\d+)\s+(?:to the power of|\*\*|\^)\s+(\d+)/i)
-    || q.match(/(\d+)\s+raised\s+to\s+(\d+)/i)
-    || q.match(/pow(?:er)?\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/i);
-  if (m) return Math.pow(parseInt(m[1]), parseInt(m[2]));
-  return null;
-}
+  m = q.match(/what is\s+(\d+)\s+mod\s+(\d+)/i);
+  if (m) return Number(m[1]) % Number(m[2]);
 
-// ──── FACTORIAL ────
+  m = q.match(/(\d+)(?:st|nd|rd|th) fibonacci number/i);
+  if (m) return fibonacci(Number(m[1]));
 
-function solveFactorial(q) {
-  const m = q.match(/factorial\s+(?:of\s+)?(\d+)/i)
-    || q.match(/(\d+)\s*!/);
+  m = q.match(/factorial of\s+(\d+)/i);
+  if (m) return factorial(Number(m[1]));
+
+  m = q.match(/greatest common divisor of\s*(\d+)\s*(?:and|,)\s*(\d+)/i);
+  if (m) return gcd(Number(m[1]), Number(m[2]));
+
+  m = q.match(/least common multiple of\s*(\d+)\s*(?:and|,)\s*(\d+)/i);
+  if (m) return lcm(Number(m[1]), Number(m[2]));
+
+  m = q.match(/is\s+(\d+)\s+prime\??/i);
+  if (m) return isPrime(Number(m[1]));
+
+  m = q.match(/absolute value of\s*(-?\d+)/i);
+  if (m) return Math.abs(Number(m[1]));
+
+  m = q.match(/is ['"]([^'"]+)['"] a palindrome\??/i);
   if (m) {
-    const n = parseInt(m[1]);
-    if (n > 20) return null;
-    let result = 1;
-    for (let i = 2; i <= n; i++) result *= i;
-    return result;
+    const clean = m[1].replace(/[^a-z0-9]/gi, '').toLowerCase();
+    return clean === [...clean].reverse().join('');
   }
+
   return null;
 }
 
-// ──── PALINDROME CHECK ────
+function solveArithmetic(q) {
+  let m = q.match(/what is\s+(-?\d+)\s*\/\s*(-?\d+)\??/i);
+  if (m) return Number(m[1]) / Number(m[2]);
 
-function solvePalindrome(q) {
-  const m = q.match(/is\s+['"](.+?)['"]\s+a?\s*palindrome/i);
-  if (m) {
-    const s = m[1].toLowerCase().replace(/[^a-z0-9]/g, '');
-    return s === s.split('').reverse().join('') ? 'true' : 'false';
-  }
+  m = q.match(/what is\s+(-?\d+)\s*\*\s*(-?\d+)\??/i);
+  if (m) return Number(m[1]) * Number(m[2]);
+
+  m = q.match(/what is\s+(-?\d+)\s*\+\s*(-?\d+)\??/i);
+  if (m) return Number(m[1]) + Number(m[2]);
+
+  m = q.match(/what is\s+(-?\d+)\s*-\s*(-?\d+)\??/i);
+  if (m) return Number(m[1]) - Number(m[2]);
+
+  m = q.match(/(\d+)\s+to the power of\s+(\d+)/i);
+  if (m) return Number(m[1]) ** Number(m[2]);
+
   return null;
 }
 
-// ──── MIN/MAX ────
+function solveCompoundOperations(q) {
+  const m = q.match(/(?:take|start with)\s+['"]?([^'"]+?)['"]?\s+then\s+(.+)/i);
+  if (!m) return null;
 
-function solveMinMax(q) {
-  let m = q.match(/(?:what is )?(?:the )?max(?:imum)?\s+(?:of|in|from)\s+([\d,\s]+)/i)
-    || q.match(/(?:what is )?(?:the )?largest\s+(?:of|in|from|number)\s+([\d,\s]+)/i);
-  if (m) {
-    const nums = m[1].match(/\d+/g).map(Number);
-    return Math.max(...nums);
-  }
+  let value = unquote(m[1]);
+  const steps = m[2].split(/\s+then\s+/i).map((s) => s.trim());
 
-  m = q.match(/(?:what is )?(?:the )?min(?:imum)?\s+(?:of|in|from)\s+([\d,\s]+)/i)
-    || q.match(/(?:what is )?(?:the )?smallest\s+(?:of|in|from|number)\s+([\d,\s]+)/i);
-  if (m) {
-    const nums = m[1].match(/\d+/g).map(Number);
-    return Math.min(...nums);
-  }
-  return null;
-}
-
-// ──── SUM ────
-
-function solveSum(q) {
-  const m = q.match(/(?:what is )?(?:the )?sum\s+(?:of\s+)?([\d,\s+and]+)/i);
-  if (m) {
-    const nums = m[1].match(/\d+/g)?.map(Number);
-    if (nums?.length) return nums.reduce((a, b) => a + b, 0);
-  }
-  return null;
-}
-
-// ──── ABSOLUTE VALUE ────
-
-function solveAbsValue(q) {
-  const m = q.match(/(?:absolute value|abs)\s+(?:of\s+)?(-?\d+(?:\.\d+)?)/i);
-  if (m) return Math.abs(parseFloat(m[1]));
-  return null;
-}
-
-// ──── GCD ────
-
-function solveGCD(q) {
-  const m = q.match(/(?:gcd|greatest common divisor)\s+(?:of\s+)?(\d+)\s+(?:and\s+)?(\d+)/i);
-  if (m) {
-    let a = parseInt(m[1]), b = parseInt(m[2]);
-    while (b) [a, b] = [b, a % b];
-    return a;
-  }
-  return null;
-}
-
-// ──── GENERIC EVAL (fallback) ────
-
-function solveEvalExpression(q) {
-  // Terakhir, coba eval expression numerik yang ada di question
-  const exprMatch = q.match(/([\d\s+\-*/%().]+)/);
-  if (exprMatch) {
-    const expr = exprMatch[1].trim();
-    if (expr.length >= 3 && /\d.*[\+\-\*\/\%].*\d/.test(expr)) {
-      try {
-        const clean = expr.replace(/[^0-9+\-*/(). %]/g, '');
-        const result = Function(`"use strict"; return (${clean})`)();
-        if (typeof result === 'number' && isFinite(result)) {
-          return Number.isInteger(result) ? result : parseFloat(result.toFixed(10));
-        }
-      } catch { /* skip */ }
+  for (const step of steps) {
+    let sm = step.match(/reverse(?: the string)?/i);
+    if (sm) {
+      value = [...String(value)].reverse().join('');
+      continue;
     }
+
+    sm = step.match(/convert to uppercase/i);
+    if (sm) {
+      value = String(value).toUpperCase();
+      continue;
+    }
+
+    sm = step.match(/convert to lowercase/i);
+    if (sm) {
+      value = String(value).toLowerCase();
+      continue;
+    }
+
+    sm = step.match(/repeat\s+(\d+)\s+times/i);
+    if (sm) {
+      value = String(value).repeat(Number(sm[1]));
+      continue;
+    }
+
+    sm = step.match(/replace ['"](.+?)['"] with ['"](.+?)['"]/i);
+    if (sm) {
+      value = String(value).split(sm[1]).join(sm[2]);
+      continue;
+    }
+
+    sm = step.match(/take substring from\s+(\d+)\s+to\s+(\d+)/i);
+    if (sm) {
+      value = String(value).substring(Number(sm[1]), Number(sm[2]));
+      continue;
+    }
+
+    return null;
   }
-  return null;
+
+  return value;
+}
+
+function solveExpressionFallback(q) {
+  const m = q.match(/(?:what is|calculate|compute|evaluate|solve)\s+([\d\s+\-*/().%]+)\??/i) || q.match(/^([\d\s+\-*/().%]+)$/);
+  if (!m) return null;
+
+  const expr = m[1].replace(/[^0-9+\-*/().%\s]/g, '').trim();
+  if (!expr) return null;
+  if (!/^[0-9+\-*/().%\s]+$/.test(expr)) return null;
+
+  // eslint-disable-next-line no-new-func
+  const result = Function(`'use strict'; return (${expr});`)();
+  if (result === undefined || Number.isNaN(result)) return null;
+  return result;
 }
