@@ -117,6 +117,20 @@ const KNOWLEDGE_ENTRIES = [
   { pattern: /thunderbirds.*parker was chauffeur to whom/i, answer: 'lady penelope', aliases: ['lady penelope'] },
   { pattern: /parker.*chauffeur.*thunderbirds/i, answer: 'lady penelope', aliases: ['lady penelope'] },
 
+  // Literature
+  { pattern: /all children except one grow up/i, answer: 'peter pan', aliases: ['peter pan'] },
+  { pattern: /washington irving.*rip van winkle.*set in.*new york/i, answer: 'catskill mountains', aliases: ['catskill mountains', 'catskills'] },
+
+  // Politics
+  { pattern: /adrian nastase prime minister.*2000.*2004/i, answer: 'romania', aliases: ['romania'] },
+
+  // Animals
+  { pattern: /oropendola is what type of creature/i, answer: 'bird', aliases: ['bird'] },
+  { pattern: /oropendola.*type of creature/i, answer: 'bird', aliases: ['bird'] },
+
+  // Music
+  { pattern: /principal conductor.*halle orchestra.*1943.*1970/i, answer: 'john barbirolli', aliases: ['john barbirolli', 'barbirolli'] },
+
   // Common sense / logic
   { pattern: /how many days are there in a leap year/i, answer: '366', aliases: ['366'] },
   { pattern: /how many continents are there/i, answer: '7', aliases: ['7', 'seven'] },
