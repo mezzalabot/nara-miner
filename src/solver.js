@@ -125,6 +125,14 @@ const KNOWLEDGE_ENTRIES = [
   // Sports
   { pattern: /figure skater.*3 consecutive winter olympic gold medals/i, answer: 'sonja henie', aliases: ['sonja henie', 'sonja henie'] },
   { pattern: /only figure skater.*3 consecutive.*olympic gold/i, answer: 'sonja henie', aliases: ['sonja henie', 'sonja henie'] },
+
+  // Religion & History
+  { pattern: /first pope.*appointed in the 21st century/i, answer: 'john paul ii', aliases: ['john paul ii', 'john paul 2'] },
+  { pattern: /first pope of the 21st century/i, answer: 'john paul ii', aliases: ['john paul ii', 'john paul 2'] },
+
+  // Art & Design
+  { pattern: /founded the kelmscott press in 1891/i, answer: 'william morris', aliases: ['william morris'] },
+  { pattern: /kelmscott press.*1891/i, answer: 'william morris', aliases: ['william morris'] },
 ];
 
 const ROMAN_VALUES = new Map([
