@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Wallet files (contains private keys)
+wallets/*.json
+!wallets/index.json
+
+# Backup files with mnemonics
+*_BACKUP_*
+nara-miner-backup/
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test-*.js
+import-*.js
+generate-*.js
+*.test.js
+
+# Package manager
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Misc
+.tmp/
+.temp/
