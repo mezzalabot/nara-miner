@@ -109,6 +109,10 @@ const KNOWLEDGE_ENTRIES = [
   { pattern: /felicity kendall play in.*the good life/i, answer: 'barbara good', aliases: ['barbara good'] },
   { pattern: /felicity kendall.*good life.*character/i, answer: 'barbara good', aliases: ['barbara good'] },
 
+  // Theater & Awards
+  { pattern: /cole porter play.*first tony award.*best musical.*1949/i, answer: 'kiss me, kate', aliases: ['kiss me, kate', 'kiss me kate'] },
+  { pattern: /first tony award.*best musical.*1949.*cole porter/i, answer: 'kiss me, kate', aliases: ['kiss me, kate', 'kiss me kate'] },
+
   // Common sense / logic
   { pattern: /how many days are there in a leap year/i, answer: '366', aliases: ['366'] },
   { pattern: /how many continents are there/i, answer: '7', aliases: ['7', 'seven'] },
