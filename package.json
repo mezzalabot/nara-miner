@@ -8,7 +8,8 @@
     "mine": "node src/miner.js",
     "consolidate": "node src/consolidate.js",
     "status": "node src/status.js",
-    "full": "node src/index.js"
+    "full": "node src/index.js",
+    "topup": "node topup-wallets.js"
   },
   "dependencies": {
     "@solana/web3.js": "^1.95.0",

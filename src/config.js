@@ -30,7 +30,9 @@ export const CONFIG = {
 
   USE_RELAY: true,
   MIN_BALANCE_FOR_DIRECT: Number(process.env.NARA_MIN_BALANCE_FOR_DIRECT || 0.1),
-  PRIORITY_WALLET_COUNT: Number(process.env.NARA_PRIORITY_WALLET_COUNT || 16),
+  // Increased from 4 to 50 for hybrid direct/relay strategy
+  // Top 50 wallets get direct submission (faster), rest use relay
+  PRIORITY_WALLET_COUNT: Number(process.env.NARA_PRIORITY_WALLET_COUNT || 50),
 
   AUTO_CONSOLIDATE: true,
   CONSOLIDATE_THRESHOLD: Number(process.env.NARA_CONSOLIDATE_THRESHOLD || 0.01),
