@@ -23,7 +23,8 @@ export const CONFIG = {
   SUBMIT_CONCURRENCY: Number(process.env.NARA_SUBMIT_CONCURRENCY || 48),
   REWARD_CONCURRENCY: Number(process.env.NARA_REWARD_CONCURRENCY || 24),
 
-  POLL_INTERVAL_MS: Number(process.env.NARA_POLL_INTERVAL_MS || 750),
+  // Aggressive polling for faster response (250ms = 4 checks/second)
+  POLL_INTERVAL_MS: Number(process.env.NARA_POLL_INTERVAL_MS || 250),
   ROUND_WAIT_MS: Number(process.env.NARA_ROUND_WAIT_MS || 1200),
   REWARD_CHECK_DELAY_MS: Number(process.env.NARA_REWARD_CHECK_DELAY_MS || 1500),
 
