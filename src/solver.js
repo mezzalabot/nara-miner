@@ -1,8 +1,9 @@
 // ============================================================
-// QUEST SOLVER - EXPANDED KNOWLEDGE BASE v2.2
-// Deterministic, rule-based, no external APIs
-// Input normalization + caching for speed & accuracy
+// QUEST SOLVER - EXPANDED KNOWLEDGE BASE v2.4
+// Hybrid: Local deterministic → Grok API fallback → Cache write-back
 // ============================================================
+
+import { grokFallback } from './grok-fallback.js';
 
 // Cache for solved questions (question -> answer)
 const answerCache = new Map();
@@ -347,7 +348,28 @@ export function solveQuestion(question) {
     }
   }
 
-  // Could not solve - don't cache failures
+  // Could not solve with local methods
+  return null;
+}
+
+// Async version with Grok fallback
+export async function solveQuestionWithFallback(question, roundInfo = {}) {
+  // Try sync solvers first
+  const localAnswer = solveQuestion(question);
+  if (localAnswer) {
+    return localAnswer;
+  }
+  
+  // Try Grok API fallback (async)
+  try {
+    const grokAnswer = await grokFallback(question, roundInfo);
+    if (grokAnswer) {
+      return grokAnswer;
+    }
+  } catch (e) {
+    console.log(`[SOLVER] Grok fallback error: ${e.message}`);
+  }
+  
   return null;
 }
 
