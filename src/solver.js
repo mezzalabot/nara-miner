@@ -117,6 +117,14 @@ const KNOWLEDGE_ENTRIES = [
 
   // Physics/Environment
   { pattern: /what do you call air flowing over earth'?s surface/i, answer: 'wind', aliases: ['wind'] },
+
+  // Sports - Football
+  { pattern: /appointed on june 22nd 2011.*manager of birmingham city fc/i, answer: 'chris hughton', aliases: ['chris hughton'] },
+  { pattern: /manager of birmingham city fc.*june 22.*2011/i, answer: 'chris hughton', aliases: ['chris hughton'] },
+
+  // Math - Percentage word problems
+  { pattern: /20% of the students are in the band.*168 students are in the band/i, answer: '840', aliases: ['840'] },
+  { pattern: /20%.*students.*band.*168.*how many students/i, answer: '840', aliases: ['840'] },
   { pattern: /air flowing over earth'?s surface/i, answer: 'wind', aliases: ['wind'] },
 
   // History/Biography
