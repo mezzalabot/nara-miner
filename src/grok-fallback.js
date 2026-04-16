@@ -121,9 +121,13 @@ const SYSTEM_PROMPT = [
 ].join(' ');
 
 async function askGrok(question, model, timeoutMs) {
-  if (!grok) return null;
+  if (!grok) {
+    console.log(`[GROK] ERROR: grok client not initialized (no API key?)`);
+    return null;
+  }
 
   try {
+    console.log(`[GROK] Calling API with model: ${model}`);
     const resp = await grok.chat.completions.create({
       model: model,
       messages: [
@@ -134,12 +138,15 @@ async function askGrok(question, model, timeoutMs) {
       temperature: 0.1,
     });
 
+    console.log(`[GROK] Raw response:`, JSON.stringify(resp).slice(0, 200));
+    
     const answer = resp?.choices?.[0]?.message?.content;
     console.log(`[GROK] ${model} answer: "${answer?.slice(0, 50)}"`);
     
     return cleanModelAnswer(answer);
   } catch (e) {
     console.log(`[GROK] ${model} error: ${e.message}`);
+    console.log(`[GROK] Error details:`, e.stack?.split('\n')[0]);
     return null;
   }
 }
@@ -153,6 +160,9 @@ function isUsableAnswer(answer) {
 
 // Main fallback function with two-tier escalation
 export async function grokFallback(question, context = {}) {
+  console.log(`[GROK] Fallback called for: "${question?.slice(0, 50)}..."`);
+  console.log(`[GROK] API Key present: ${!!grok}`);
+  
   const key = normalizeQuestionKey(question);
 
   // Check cache first
