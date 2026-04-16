@@ -48,6 +48,9 @@ function normalizeQuestionKey(question) {
 function cleanModelAnswer(answer) {
   return String(answer || '')
     .replace(/^[\"'`\s]+|[\"'`\s]+$/g, '')
+    .replace(/\*\*/g, '') // Remove markdown bold
+    .replace(/\*/g, '')  // Remove markdown italic
+    .toLowerCase()        // Normalize to lowercase
     .replace(/\s+/g, ' ')
     .trim();
 }

@@ -335,6 +335,10 @@ const TRIVIA_PATTERNS = [
   { keywords: ['photosynthesis', 'plant requires'], answer: 'sunlight' },
   { keywords: ['inky', 'pinky', 'clyde', 'pac-man'], answer: 'blinky' },
   { keywords: ['gooseberry sauce', 'fish'], answer: 'mackerel' },
+  // Fresh from current logs
+  { keywords: ['dam busters march', 'british composer'], answer: 'eric coates' },
+  { keywords: ['which british composer', 'dam busters'], answer: 'eric coates' },
+  { keywords: ['dam busters', 'march'], answer: 'eric coates' },
 ];
 
 function solveTriviaFallback(q, raw, context) {
