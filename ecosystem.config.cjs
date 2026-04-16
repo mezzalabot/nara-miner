@@ -6,12 +6,15 @@ module.exports = {
     {
       name: 'nara-miner',
       script: './src/miner.js',
-      interpreter: 'node',
+      interpreter: './node_modules/.bin/tsx',
       exec_mode: 'fork',
       instances: 1,
       max_memory_restart: '512M',
+      // Load env vars from .env file (API keys, config)
+      env_file: './.env',
       env: {
         NODE_ENV: 'production',
+        TELEGRAM_CHAT_ID: '5693827465',
       },
       log_file: './logs/pm2-combined.log',
       out_file: './logs/pm2-out.log',
