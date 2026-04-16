@@ -126,6 +126,9 @@ const KNOWLEDGE_ENTRIES = [
   { pattern: /andorra.*located in which mountain range/i, answer: 'pyrenees', aliases: ['pyrenees', 'the pyrenees'] },
   { pattern: /landlocked country of andorra.*mountain range/i, answer: 'pyrenees', aliases: ['pyrenees', 'the pyrenees'] },
 
+  // Health & Medicine (Multiple Choice)
+  { pattern: /infants born to mothers who are vegan.*deficiency of which nutrient/i, answer: 'vitamin b12', aliases: ['vitamin b12', 'b12', 'vitamin b-12'] },
+
   // Math - Percentage word problems
   { pattern: /20% of the students are in the band.*168 students are in the band/i, answer: '840', aliases: ['840'] },
   { pattern: /20%.*students.*band.*168.*how many students/i, answer: '840', aliases: ['840'] },
@@ -215,7 +218,9 @@ function solveMultipleChoiceReducer(q, raw, context) {
       for (let i = 0; i < options.length; i++) {
         const opt = options[i].toLowerCase();
         if (opt.includes(expected) || expected.includes(opt)) {
-          return String.fromCharCode(65 + i); // A, B, C, D
+          // Return the FULL option text, not just the letter
+          // e.g., "C. Vitamin B12" instead of "C"
+          return options[i];
         }
       }
     }
