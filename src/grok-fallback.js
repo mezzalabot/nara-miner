@@ -172,7 +172,7 @@ export async function grokFallback(question, context = {}) {
     console.log(`[GROK] Trying grok-4-1-fast...`);
     const fastAnswer = await askGrok(
       question,
-      'grok-4-1-fast-non-reasoning',
+      'grok-4-1-fast',
       1400
     );
 
