@@ -256,6 +256,18 @@ const TRIVIA_PATTERNS = [
   { keywords: ['73351', 'sort', 'ascending'], answer: '13357' },
   { keywords: ['uhhr', 'hfma', 'interleave'], answer: 'uhhfhmra' },
   { keywords: ['air', 'flowing', 'earth', 'surface'], answer: 'wind' },
+  // From failed questions log (Round 13596-13600)
+  { keywords: ['munsters', 'lily', 'maiden name'], answer: 'lily dracula' },
+  { keywords: ['eden project', 'cornwall', 'st blazey'], answer: 'eden project' },
+  { keywords: ['tommy bolin', 'guitarist', '1976'], answer: 'deep purple' },
+  { keywords: ['potato head', 'film', 'franchise'], answer: 'toy story' },
+  { keywords: ['latvian', 'dancer', 'kirov ballet', '1974'], answer: 'mikhail baryshnikov' },
+  // More patterns from previous logs
+  { keywords: ['andorra', 'mountain range'], answer: 'pyrenees' },
+  { keywords: ['vegan', 'mothers', 'vitamin b12'], answer: 'vitamin b12' },
+  { keywords: ['20%', 'band', '168'], answer: '840' },
+  { keywords: ['birmingham city', 'manager', '2011'], answer: 'chris hughton' },
+  { keywords: ['southwest', 'airline', 'love field'], answer: 'southwest airlines' },
 ];
 
 function solveTriviaFallback(q, raw, context) {

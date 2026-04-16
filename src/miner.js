@@ -18,7 +18,7 @@ import pLimit from 'p-limit';
 import chalk from 'chalk';
 import { CONFIG } from './config.js';
 import { log } from './logger.js';
-import { solveQuestion } from './solver.js';
+import { solveQuestion, solveQuestionWithFallback } from './solver.js';
 import { consolidateAll } from './consolidate.js';
 import {
   notifyReward,
@@ -335,7 +335,29 @@ async function startMining() {
       log.info(`Time remaining: ${quest.timeRemaining}s`);
 
       const solveStarted = Date.now();
-      const answer = solveQuestion(quest.question);
+      
+      // Try native solver first (sync, fast)
+      let answer = solveQuestion(quest.question);
+      let answerSource = 'native';
+      
+      // If native fails, try Grok fallback (async)
+      if (!answer) {
+        log.info(`[ROUND ${quest.round}] Native solver miss, trying Grok...`);
+        try {
+          const grokResult = await solveQuestionWithFallback(quest.question, {
+            timeLeftMs: quest.timeRemaining * 1000,
+            remainingSlots: quest.remainingSlots
+          });
+          if (grokResult) {
+            answer = grokResult;
+            answerSource = 'grok';
+            log.info(`[ROUND ${quest.round}] Grok answer: ${answer}`);
+          }
+        } catch (e) {
+          log.warn(`[ROUND ${quest.round}] Grok failed: ${e.message}`);
+        }
+      }
+      
       const solveMs = Date.now() - solveStarted;
 
       if (!answer) {
@@ -345,7 +367,7 @@ async function startMining() {
         continue;
       }
 
-      log.info(chalk.green(`Answer: ${answer}`));
+      log.info(chalk.green(`Answer: ${answer} (source: ${answerSource})`));
       log.info(`Solve latency: ${solveMs} ms`);
 
       const roundStarted = Date.now();

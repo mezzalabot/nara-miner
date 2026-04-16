@@ -9,11 +9,11 @@ const RPC_URL = 'https://mainnet-api.nara.build/';
 const WALLETS_DIR = './wallets';
 const WALLETS_INDEX = './wallets/index.json';
 
-// Configuration
+// Configuration - PRIORITY WALLETS ONLY (first 16 for direct submit)
 const SOURCE_WALLET_INDEX = 0; // Main wallet
-const START_INDEX = 4;         // First wallet to fund
-const END_INDEX = 49;          // Last wallet to fund (46 wallets total)
-const AMOUNT_NARA = 0.2;       // Amount to transfer to each wallet
+const START_INDEX = 4;         // Wallet 4 (skip 0-3 which already have balance)
+const END_INDEX = 19;          // Wallet 19 (total 16 priority wallets)
+const AMOUNT_NARA = 0.15;      // Amount to transfer (0.15 = ~10-15 submits)
 const LAMPORTS_PER_NARA = 1000000000; // 1 NARA = 10^9 lamports
 
 async function loadWallet(index) {
