@@ -414,9 +414,9 @@ export async function solveQuestionWithFallback(question, roundInfo = {}) {
   
   // Try Grok API fallback (async)
   try {
-    const grokAnswer = await grokFallback(question, roundInfo);
-    if (grokAnswer) {
-      return grokAnswer;
+    const grokResult = await grokFallback(question, roundInfo);
+    if (grokResult?.answer) {
+      return grokResult.answer;
     }
   } catch (e) {
     console.log(`[SOLVER] Grok fallback error: ${e.message}`);

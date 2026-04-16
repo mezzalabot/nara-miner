@@ -53,10 +53,23 @@ function cleanModelAnswer(answer) {
 }
 
 function extractOutputText(resp) {
+  // Debug: log full response structure
+  console.log('[GROK] Response type:', typeof resp);
+  console.log('[GROK] Response keys:', Object.keys(resp || {}));
+  
+  // Try output_text first (simple text response)
   if (typeof resp?.output_text === 'string' && resp.output_text.trim()) {
+    console.log('[GROK] Found output_text:', resp.output_text.slice(0, 50));
     return resp.output_text.trim();
   }
 
+  // Try choices/response format (chat completion style)
+  if (resp?.choices?.[0]?.message?.content) {
+    console.log('[GROK] Found choices message:', resp.choices[0].message.content.slice(0, 50));
+    return resp.choices[0].message.content.trim();
+  }
+
+  // Try output array format
   const chunks = [];
   for (const item of resp?.output || []) {
     if (item?.type !== 'message') continue;
@@ -65,7 +78,20 @@ function extractOutputText(resp) {
       else if (typeof c?.value === 'string') chunks.push(c.value);
     }
   }
-  return chunks.join(' ').trim();
+  if (chunks.length > 0) {
+    console.log('[GROK] Found output array:', chunks.join(' ').slice(0, 50));
+    return chunks.join(' ').trim();
+  }
+
+  // Fallback: try to stringify and extract
+  try {
+    const str = JSON.stringify(resp);
+    console.log('[GROK] Full response:', str.slice(0, 200));
+  } catch (e) {
+    console.log('[GROK] Could not stringify response');
+  }
+  
+  return '';
 }
 
 function shouldUseApiFallback({ timeLeftMs = 999999, remainingSlots = 999, force = false } = {}) {
@@ -94,22 +120,25 @@ const SYSTEM_PROMPT = [
 async function askGrok(question, model, timeoutMs) {
   if (!grok) return null;
 
-  const client = new OpenAI({
-    apiKey: XAI_API_KEY,
-    baseURL: 'https://api.x.ai/v1',
-    timeout: timeoutMs,
-  });
+  try {
+    const resp = await grok.chat.completions.create({
+      model: model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: String(question || '').trim() },
+      ],
+      max_tokens: 50,
+      temperature: 0.1,
+    });
 
-  const resp = await client.responses.create({
-    model,
-    store: false,
-    input: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: String(question || '').trim() },
-    ],
-  });
-
-  return cleanModelAnswer(extractOutputText(resp));
+    const answer = resp?.choices?.[0]?.message?.content;
+    console.log(`[GROK] ${model} answer: "${answer?.slice(0, 50)}"`);
+    
+    return cleanModelAnswer(answer);
+  } catch (e) {
+    console.log(`[GROK] ${model} error: ${e.message}`);
+    return null;
+  }
 }
 
 function isUsableAnswer(answer) {
