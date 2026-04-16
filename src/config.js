@@ -17,11 +17,11 @@ export const CONFIG = {
   WALLETS_DIR: './wallets',
   WALLETS_INDEX: './wallets/index.json',
 
-  // Split concurrency by phase instead of one global limiter.
-  CHECK_CONCURRENCY: Number(process.env.NARA_CHECK_CONCURRENCY || Math.min(96, cpuCount * 8)),
-  PROOF_CONCURRENCY: Number(process.env.NARA_PROOF_CONCURRENCY || Math.min(48, Math.max(8, cpuCount * 2))),
-  SUBMIT_CONCURRENCY: Number(process.env.NARA_SUBMIT_CONCURRENCY || 48),
-  REWARD_CONCURRENCY: Number(process.env.NARA_REWARD_CONCURRENCY || 24),
+  // GPT-5.4 recommended: reduced for stability (was 96/48/48/24)
+  CHECK_CONCURRENCY: Number(process.env.NARA_CHECK_CONCURRENCY || 16),
+  PROOF_CONCURRENCY: Number(process.env.NARA_PROOF_CONCURRENCY || 4),
+  SUBMIT_CONCURRENCY: Number(process.env.NARA_SUBMIT_CONCURRENCY || 12),
+  REWARD_CONCURRENCY: Number(process.env.NARA_REWARD_CONCURRENCY || 8),
 
   // Aggressive polling for faster response (250ms = 4 checks/second)
   POLL_INTERVAL_MS: Number(process.env.NARA_POLL_INTERVAL_MS || 250),

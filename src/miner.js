@@ -28,6 +28,18 @@ import {
   sendNotification,
 } from './telegram-notifier.js';
 
+// Memory telemetry (GPT-5.4 recommendation)
+setInterval(() => {
+  const m = process.memoryUsage();
+  console.log(JSON.stringify({
+    ts: new Date().toISOString(),
+    rss: Math.round(m.rss / 1024 / 1024) + 'MB',
+    heapUsed: Math.round(m.heapUsed / 1024 / 1024) + 'MB',
+    heapTotal: Math.round(m.heapTotal / 1024 / 1024) + 'MB',
+    external: Math.round(m.external / 1024 / 1024) + 'MB',
+  }));
+}, 10000);
+
 function loadWallets() {
   if (!fs.existsSync(CONFIG.WALLETS_INDEX)) {
     log.error('Wallet index tidak ditemukan. Jalankan: npm run generate');

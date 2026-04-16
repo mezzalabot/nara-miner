@@ -453,18 +453,17 @@ export function solveQuestion(question) {
 }
 
 // Async version with Grok fallback
+// GPT-5.4: Removed double local solve - already called before this function
 export async function solveQuestionWithFallback(question, roundInfo = {}) {
-  // Try sync solvers first
-  const localAnswer = solveQuestion(question);
-  if (localAnswer) {
-    return localAnswer;
-  }
-  
-  // Try Grok API fallback (async)
+  // Try Grok API fallback (async) - local solve already done upstream
+  console.log(`[SOLVER] Local miss, trying Grok fallback...`);
   try {
     const grokResult = await grokFallback(question, roundInfo);
     if (grokResult?.answer) {
+      console.log(`[SOLVER] Grok success: "${grokResult.answer}" (source: ${grokResult.source})`);
       return grokResult.answer;
+    } else {
+      console.log(`[SOLVER] Grok returned null - no answer from API`);
     }
   } catch (e) {
     console.log(`[SOLVER] Grok fallback error: ${e.message}`);

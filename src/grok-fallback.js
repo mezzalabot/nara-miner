@@ -151,10 +151,19 @@ async function askGrok(question, model, timeoutMs) {
   }
 }
 
-function isUsableAnswer(answer) {
-  if (!answer) return false;
-  if (answer.length > 120) return false;
-  if (/^(sorry|i don't know|unknown|not sure|cannot determine)\b/i.test(answer)) return false;
+function isUsableAnswer(answer, model = 'unknown') {
+  if (!answer) {
+    console.log(`[GROK] ${model}: REJECTED - answer is null/empty`);
+    return false;
+  }
+  if (answer.length > 120) {
+    console.log(`[GROK] ${model}: REJECTED - answer too long (${answer.length} chars): "${answer.slice(0, 50)}..."`);
+    return false;
+  }
+  if (/^(sorry|i don't know|unknown|not sure|cannot determine)\b/i.test(answer)) {
+    console.log(`[GROK] ${model}: REJECTED - refusal pattern: "${answer.slice(0, 50)}"`);
+    return false;
+  }
   return true;
 }
 
@@ -189,7 +198,7 @@ export async function grokFallback(question, context = {}) {
       1400
     );
 
-    if (isUsableAnswer(fastAnswer)) {
+    if (isUsableAnswer(fastAnswer, 'grok-4-1-fast')) {
       factCache[key] = fastAnswer;
       saveCache(factCache);
       console.log(`[GROK] Fast success: "${fastAnswer}"`);
@@ -197,6 +206,8 @@ export async function grokFallback(question, context = {}) {
         answer: fastAnswer,
         source: 'grok-fast',
       };
+    } else {
+      console.log(`[GROK] Fast answer rejected, escalating...`);
     }
   } catch (e) {
     console.log(`[GROK] Fast failed: ${e.message}`);
@@ -217,7 +228,7 @@ export async function grokFallback(question, context = {}) {
       2600
     );
 
-    if (isUsableAnswer(slowAnswer)) {
+    if (isUsableAnswer(slowAnswer, 'grok-4.20-reasoning')) {
       factCache[key] = slowAnswer;
       saveCache(factCache);
       console.log(`[GROK] Reasoning success: "${slowAnswer}"`);
@@ -225,6 +236,8 @@ export async function grokFallback(question, context = {}) {
         answer: slowAnswer,
         source: 'grok-4.20',
       };
+    } else {
+      console.log(`[GROK] Reasoning answer also rejected, returning null`);
     }
   } catch (e) {
     console.log(`[GROK] Reasoning failed: ${e.message}`);
